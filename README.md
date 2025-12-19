@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # Simple IT Inventory App
 
 As a university student juggling my studies with a part-time job as a help desk associate, I've spent a lot of time with spreadsheets and outdated inventory systems that make tracking IT equipment a chore. After about six months of diving deep into programming, I decided to build something that would solve a real problem for myself and my team.
@@ -27,7 +25,6 @@ As a university student juggling my studies with a part-time job as a help desk 
 - **Charts:** [Recharts](https://recharts.org/)
 - **State Management:** React Context & SWR for data fetching (inferred from `hooks/api-hooks.ts`)
 
->>>>>>> 2ac1052 (Adding my README.md)
 ## Getting Started
 
 First, run the development server:
