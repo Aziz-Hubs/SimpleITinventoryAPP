@@ -78,7 +78,7 @@ export async function createMaintenanceRequest(
     reportedDate: new Date().toISOString().split("T")[0],
     notes: [],
   };
-  
+
   mockMaintenanceRecords.push(newRecord);
   return newRecord;
 }
@@ -99,6 +99,24 @@ export async function updateMaintenanceStatus(
     record.completedDate = new Date().toISOString().split("T")[0];
   }
 
+  return record;
+}
+
+export async function updateMaintenanceRecord(
+  id: string,
+  updates: Partial<MaintenanceRecord>
+): Promise<MaintenanceRecord | null> {
+  const record = await getMaintenanceRecordById(id);
+  if (!record) return null;
+
+  // Handle status update specifically for notes/date
+  if (updates.status) {
+    if (updates.status === "completed" && !record.completedDate) {
+      record.completedDate = new Date().toISOString().split("T")[0];
+    }
+  }
+
+  Object.assign(record, updates);
   return record;
 }
 

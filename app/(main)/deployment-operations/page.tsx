@@ -32,6 +32,19 @@ import {
   IconFilter,
   IconSearch,
   IconDownload,
+  IconClock,
+  IconCheck,
+  IconCalendar,
+  IconLoader,
+  IconStack,
+  IconFingerprint,
+  IconTag,
+  IconAlertCircle,
+  IconId,
+  IconEdit,
+  IconX,
+  IconAlertTriangle,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import {
   Select,
@@ -40,6 +53,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   OnboardAssetDialog,
   OffboardAssetDialog,
@@ -48,10 +68,12 @@ import {
   ReassignAssetDialog,
 } from "@/components/features/deployment/operation-forms";
 import { MaintenanceDialog } from "@/components/features/maintenance/maintenance-dialog";
+import { BulkUpdateDialog } from "@/components/features/maintenance/bulk-update-dialog";
 import { MaintenanceDetailSheet } from "@/components/features/maintenance/maintenance-detail-sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   getMaintenanceRecords,
+  updateMaintenanceRecord,
   exportMaintenanceReport,
 } from "@/services/maintenance-service";
 import type { MaintenanceRecord } from "@/lib/maintenance-types";
@@ -74,7 +96,12 @@ export default function DeploymentOperationsPage() {
     MaintenanceRecord[]
   >([]);
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [priorityFilter, setPriorityFilter] = React.useState("all");
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedRecordIds, setSelectedRecordIds] = React.useState<Set<string>>(
+    new Set()
+  );
+  const [bulkUpdateOpen, setBulkUpdateOpen] = React.useState(false);
 
   const loadMaintenanceRecords = React.useCallback(async () => {
     const records = await getMaintenanceRecords();
@@ -106,7 +133,58 @@ export default function DeploymentOperationsPage() {
     }
 
     setFilteredRecords(filtered);
-  }, [maintenanceRecords, statusFilter, searchQuery]);
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((record) => record.status === statusFilter);
+    }
+
+    // Filter by priority
+    if (priorityFilter !== "all") {
+      filtered = filtered.filter((record) => record.priority === priorityFilter);
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (record) =>
+          record.assetTag.toLowerCase().includes(query) ||
+          record.issue.toLowerCase().includes(query) ||
+          record.assetCategory.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredRecords(filtered);
+    // Clear selection when filters change
+    setSelectedRecordIds(new Set());
+  }, [maintenanceRecords, statusFilter, priorityFilter, searchQuery]);
+
+  const toggleSelectAll = () => {
+    if (selectedRecordIds.size === filteredRecords.length && filteredRecords.length > 0) {
+      setSelectedRecordIds(new Set());
+    } else {
+      setSelectedRecordIds(new Set(filteredRecords.map((r) => r.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    const newSelected = new Set(selectedRecordIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRecordIds(newSelected);
+  };
+
+  const handleBulkUpdate = async (updates: { status?: string; priority?: string }) => {
+    const promises = Array.from(selectedRecordIds).map((id) =>
+      updateMaintenanceRecord(id, updates as any)
+    );
+    await Promise.all(promises);
+    loadMaintenanceRecords();
+    setSelectedRecordIds(new Set());
+  };
 
   const handleRecordClick = (record: MaintenanceRecord) => {
     setSelectedRecord(record);
@@ -119,9 +197,8 @@ export default function DeploymentOperationsPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `maintenance-report-${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    a.download = `maintenance-report-${new Date().toISOString().split("T")[0]
+      }.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -145,7 +222,7 @@ export default function DeploymentOperationsPage() {
   const categoryStats = getCategoryStats();
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between space-y-2">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">
@@ -295,6 +372,12 @@ export default function DeploymentOperationsPage() {
         onOpenChange={setMaintenanceOpen}
         onSuccess={loadMaintenanceRecords}
       />
+      <BulkUpdateDialog
+        open={bulkUpdateOpen}
+        onOpenChange={setBulkUpdateOpen}
+        selectedCount={selectedRecordIds.size}
+        onConfirm={handleBulkUpdate}
+      />
       <MaintenanceDetailSheet
         open={detailSheetOpen}
         onOpenChange={setDetailSheetOpen}
@@ -334,17 +417,99 @@ export default function DeploymentOperationsPage() {
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[150px]">
-                    <IconFilter className="mr-2 h-4 w-4" />
                     <SelectValue placeholder="Filter Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <IconStack className="h-4 w-4" />
+                        <span>All Status</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      <div className="flex items-center gap-2">
+                        <IconClock className="h-4 w-4 text-amber-500" />
+                        <span>Pending</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="in-progress">
+                      <div className="flex items-center gap-2">
+                        <IconLoader className="h-4 w-4 text-blue-500 animate-spin" />
+                        <span>In Progress</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="completed">
+                      <div className="flex items-center gap-2">
+                        <IconCheck className="h-4 w-4 text-emerald-500" />
+                        <span>Completed</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="scheduled">
+                      <div className="flex items-center gap-2">
+                        <IconCalendar className="h-4 w-4 text-purple-500" />
+                        <span>Scheduled</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Filter Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-2">
+                        <IconStack className="h-4 w-4" />
+                        <span>All Priority</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="critical">
+                      <div className="flex items-center gap-2">
+                        <IconAlertCircle className="h-4 w-4 text-red-500" />
+                        <span>Critical</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="high">
+                      <div className="flex items-center gap-2">
+                        <IconAlertTriangle className="h-4 w-4 text-orange-500" />
+                        <span>High</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <div className="flex items-center gap-2">
+                        <IconInfoCircle className="h-4 w-4 text-blue-500" />
+                        <span>Medium</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="low">
+                      <div className="flex items-center gap-2">
+                        <IconInfoCircle className="h-4 w-4 text-gray-500" />
+                        <span>Low</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {selectedRecordIds.size > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary" size="sm">
+                        <IconEdit className="mr-2 h-4 w-4" />
+                        Bulk Edit ({selectedRecordIds.size})
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setBulkUpdateOpen(true)}>
+                        <IconEdit className="mr-2 h-4 w-4" /> Update Selected
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => setSelectedRecordIds(new Set())}
+                      >
+                        <IconX className="mr-2 h-4 w-4" /> Clear Selection
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <Button variant="outline" size="sm" onClick={handleExport}>
                   <IconDownload className="mr-2 h-4 w-4" />
                   Export
@@ -355,20 +520,62 @@ export default function DeploymentOperationsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Asset Tag</TableHead>
-                    <TableHead>Issue</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead className="text-right">Date</TableHead>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={selectedRecordIds.size === filteredRecords.length && filteredRecords.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all"
+                      />
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <IconFingerprint className="h-4 w-4" />
+                        ID
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <IconTag className="h-4 w-4" />
+                        Asset Tag
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <IconAlertCircle className="h-4 w-4" />
+                        Issue
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <IconStack className="h-4 w-4" />
+                        Status
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <IconLoader className="h-4 w-4" />
+                        Priority
+                      </div>
+                    </TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <IconId className="h-4 w-4" />
+                        Technician
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <IconCalendar className="h-4 w-4" />
+                        Date
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRecords.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={8}
                         className="text-center text-muted-foreground"
                       >
                         No maintenance records found
@@ -381,6 +588,13 @@ export default function DeploymentOperationsPage() {
                         className="group cursor-pointer hover:bg-muted/50"
                         onClick={() => handleRecordClick(record)}
                       >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedRecordIds.has(record.id)}
+                            onCheckedChange={() => toggleSelectOne(record.id)}
+                            aria-label={`Select ${record.id}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">
                           {record.id}
                         </TableCell>
@@ -438,7 +652,7 @@ export default function DeploymentOperationsPage() {
                             width: `${Math.min(
                               (categoryStats.hardware /
                                 maintenanceRecords.length) *
-                                100,
+                              100,
                               100
                             )}%`,
                           }}
@@ -466,7 +680,7 @@ export default function DeploymentOperationsPage() {
                             width: `${Math.min(
                               (categoryStats.software /
                                 maintenanceRecords.length) *
-                                100,
+                              100,
                               100
                             )}%`,
                           }}
@@ -494,7 +708,7 @@ export default function DeploymentOperationsPage() {
                             width: `${Math.min(
                               (categoryStats.network /
                                 maintenanceRecords.length) *
-                                100,
+                              100,
                               100
                             )}%`,
                           }}
@@ -563,6 +777,6 @@ export default function DeploymentOperationsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </div >
   );
 }

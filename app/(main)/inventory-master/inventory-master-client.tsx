@@ -23,7 +23,7 @@ export function InventoryMasterClient({
       : initialAssets.filter((asset) => asset.Category === selectedCategory);
 
   return (
-    <div className="flex flex-col flex-1 h-full space-y-6 p-4 md:p-6">
+    <div className="flex flex-col flex-1 h-full space-y-6 p-6">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">

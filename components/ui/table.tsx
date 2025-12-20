@@ -8,7 +8,7 @@ const Table = React.forwardRef<HTMLTableElement, React.ComponentProps<"table">>(
   ({ className, ...props }, ref) => (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto rounded-xl border border-white/20 dark:border-white/10 bg-card/50 backdrop-blur-md shadow-xl"
+      className="relative w-full overflow-x-auto rounded-xl border border-white/20 dark:border-white/10 bg-card/50 backdrop-blur-md shadow-xl no-scrollbar"
     >
       <table
         ref={ref}
@@ -87,7 +87,7 @@ const TableHead = React.forwardRef<
     ref={ref}
     data-slot="table-head"
     className={cn(
-      "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]",
+      "text-foreground h-12 px-4 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]",
       className
     )}
     {...props}
@@ -103,7 +103,7 @@ const TableCell = React.forwardRef<
     ref={ref}
     data-slot="table-cell"
     className={cn(
-      "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]",
+      "p-4 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-[2px]",
       className
     )}
     {...props}

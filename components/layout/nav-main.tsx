@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  IconCirclePlusFilled,
   IconMail,
   IconSearch,
   type Icon,
@@ -16,9 +15,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 import { usePathname } from "next/navigation";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { cn } from "@/lib/utils";
 
 const containerVariants = {
   visible: {
@@ -55,27 +57,36 @@ export function NavMain({
   onNotifications?: () => void;
 }) {
   const pathname = usePathname();
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
+            <ShimmerButton
               onClick={onQuickAdjust}
-              tooltip="Quick Adjust"
-              className="gradient-premium min-w-8 duration-200 ease-linear"
+              borderRadius="calc(var(--radius) - 2px)"
+              shimmerSize="0.05em"
+              shimmerColor="#ffffff"
+              shimmerDuration="3s"
+              background="var(--primary)"
+              className={cn(
+                "h-8 transition-all duration-300 ease-in-out text-primary-foreground hover:scale-[1.02] active:scale-95",
+                isCollapsed ? "w-8 px-0 justify-center" : "flex-1 px-3 justify-start"
+              )}
             >
-              <IconSearch />
-              <span>Quick Adjust</span>
-            </SidebarMenuButton>
+              <IconSearch className="size-4 shrink-0" />
+              {!isCollapsed && <span className="ml-2 text-sm font-medium">Quick Adjust</span>}
+            </ShimmerButton>
             <Button
               size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0 relative"
+              className="size-9 group-data-[collapsible=icon]:hidden relative cursor-pointer"
               variant="outline"
               onClick={onNotifications}
             >
-              <IconMail />
+              <IconMail className="size-4" />
               <span className="sr-only">Notifications</span>
               {/* Unread badge indicator */}
               <motion.span

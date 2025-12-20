@@ -3,7 +3,7 @@ import { InventoryMasterClient } from "./inventory-master-client";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Inventory Master | Acme Inc.",
+  title: "Inventory Master | Acuative Corp.",
   description: "Centralized asset management and tracking.",
 };
 

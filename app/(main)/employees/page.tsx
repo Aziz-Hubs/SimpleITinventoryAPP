@@ -2,7 +2,7 @@ import { EmployeesTable } from "@/components/features/employees/employees-table"
 
 export default function EmployeesPage() {
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6 bg-muted/20">
+    <div className="flex flex-1 flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">

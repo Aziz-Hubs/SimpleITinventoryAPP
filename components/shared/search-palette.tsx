@@ -13,6 +13,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { getAssets } from "@/services/dashboard-service";
+import { getEmployees, type Employee } from "@/services/employee-service";
 import { AssetLegacy } from "@/lib/types";
 
 export function SearchPalette({
@@ -24,25 +25,13 @@ export function SearchPalette({
 }) {
   const [assets, setAssets] = React.useState<AssetLegacy[]>([]);
 
+  const [employees, setEmployees] = React.useState<Employee[]>([]);
+
   React.useEffect(() => {
     // Fetch data for search
     getAssets().then(setAssets);
+    getEmployees().then(setEmployees);
   }, []);
-
-  // Derive employees from assets for the search demo
-  // In a real app, this would be a separate API call
-  const employees = React.useMemo(() => {
-    const uniqueEmployees = new Set<string>();
-    assets.forEach((asset) => {
-      if (asset.Employee && asset.Employee !== "UNASSIGNED") {
-        uniqueEmployees.add(asset.Employee);
-      }
-    });
-    return Array.from(uniqueEmployees).map((name) => ({
-      name,
-      role: "Employee", // Mock role
-    }));
-  }, [assets]);
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
@@ -70,12 +59,12 @@ export function SearchPalette({
         <CommandSeparator />
         <CommandGroup heading="Employees">
           {employees.map((employee) => (
-            <CommandItem key={employee.name} value={employee.name}>
+            <CommandItem key={employee.id} value={employee.fullName}>
               <IconUser className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
-                <span>{employee.name}</span>
+                <span>{employee.fullName}</span>
                 <span className="text-xs text-muted-foreground">
-                  {employee.role}
+                  {employee.position} • {employee.department}
                 </span>
               </div>
             </CommandItem>

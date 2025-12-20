@@ -133,14 +133,28 @@ function getNotificationIcon(type: NotificationType) {
 function getNotificationColor(type: NotificationType) {
   switch (type) {
     case "success":
-      return "text-green-500";
+      return "text-emerald-500";
     case "warning":
-      return "text-yellow-500";
+      return "text-amber-500";
     case "error":
-      return "text-red-500";
+      return "text-rose-500";
     case "info":
     default:
-      return "text-blue-500";
+      return "text-sky-500";
+  }
+}
+
+function getNotificationBgColor(type: NotificationType) {
+  switch (type) {
+    case "success":
+      return "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40";
+    case "warning":
+      return "bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40";
+    case "error":
+      return "bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40";
+    case "info":
+    default:
+      return "bg-sky-500/5 border-sky-500/20 hover:border-sky-500/40";
   }
 }
 
@@ -241,9 +255,8 @@ export function NotificationsCenter({
                 <SheetTitle className="text-lg">Notifications</SheetTitle>
                 <SheetDescription className="text-xs">
                   {unreadCount > 0
-                    ? `${unreadCount} unread notification${
-                        unreadCount > 1 ? "s" : ""
-                      }`
+                    ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""
+                    }`
                     : "You're all caught up!"}
                 </SheetDescription>
               </div>
@@ -284,6 +297,7 @@ export function NotificationsCenter({
               value="all"
               className="data-[state=active]:bg-muted/50"
             >
+              <Bell className="h-3.5 w-3.5 mr-1.5" />
               All
               {unreadCount > 0 && (
                 <Badge
@@ -328,6 +342,7 @@ export function NotificationsCenter({
                         notification.category
                       );
                       const iconColor = getNotificationColor(notification.type);
+                      const bgColor = getNotificationBgColor(notification.type);
 
                       return (
                         <motion.div
@@ -337,10 +352,10 @@ export function NotificationsCenter({
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
                           className={cn(
-                            "group relative rounded-xl border border-border/50 p-4 transition-all hover:border-border hover:shadow-md",
+                            "group relative rounded-xl border p-4 transition-all hover:shadow-md",
                             notification.read
-                              ? "bg-card/50"
-                              : "bg-card shadow-sm border-primary/20"
+                              ? "bg-card/50 border-border/50"
+                              : bgColor
                           )}
                         >
                           {!notification.read && (
@@ -350,7 +365,8 @@ export function NotificationsCenter({
                           <div className="flex gap-3">
                             <div
                               className={cn(
-                                "mt-0.5 rounded-lg bg-muted/50 p-2",
+                                "mt-0.5 rounded-lg p-2",
+                                notification.read ? "bg-muted/50" : iconColor.replace("text-", "bg-") + "/10",
                                 iconColor
                               )}
                             >

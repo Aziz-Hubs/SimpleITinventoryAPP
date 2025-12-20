@@ -13,7 +13,6 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   ArrowUpDown,
@@ -25,8 +24,7 @@ import {
   Laptop,
   Monitor,
   MoreHorizontal,
-  Search,
-  Settings2,
+  Package,
   Smartphone,
   Sparkles,
   Tablet,
@@ -38,44 +36,42 @@ import {
   Cable,
   Server,
   PcCase,
+  LayoutGrid,
+  UserCheck,
+  Archive,
+  Layers,
+  Filter,
+  Shield,
+  MapPin,
+  Settings2,
 } from "lucide-react";
 import {
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFacetedMinMaxValues,
   type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { z } from "zod";
 
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { ViewAssetSheet } from "@/components/features/inventory/view-asset-sheet";
@@ -86,7 +82,9 @@ import { BulkAssignDialog } from "@/components/features/inventory/bulk-assign-di
 import { BulkUpdateStateDialog } from "@/components/features/inventory/bulk-update-state-dialog";
 import { BulkDeleteDialog } from "@/components/features/inventory/bulk-delete-dialog";
 import { CopyButton } from "@/components/shared/copy-button";
-import { AssetLegacy, assetSchema as schema } from "@/lib/types";
+import { BaseDataTable } from "@/components/shared/base-data-table";
+import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
+import { AssetLegacy } from "@/lib/types";
 
 // ----------------------------------------------------------------------
 // Types & Schemas
@@ -213,32 +211,6 @@ function AssetActions({ asset, onAction }: AssetActionsProps) {
 // Main Component
 // ----------------------------------------------------------------------
 
-const MotionTableBody = motion(TableBody);
-const MotionTableRow = motion(TableRow);
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.03,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 260,
-      damping: 20,
-    },
-  },
-};
-
 export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
   // --- State Managment ---
   const [tab, setTab] = React.useState("all");
@@ -270,6 +242,74 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
     setRowSelection({});
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [tab]);
+
+  // Column Schema Definition
+  const CATEGORY_COLUMN_SCHEMA: Record<string, string[]> = React.useMemo(() => ({
+    Laptop: ["Warranty Expiry", "CPU", "RAM", "Storage", "USB-A Ports", "USB-C Ports"],
+    Desktop: ["Warranty Expiry", "CPU", "RAM", "Storage", "Dedicated GPU", "USB-A Ports", "USB-C Ports"],
+    Monitor: ["Dimensions", "Resolution", "Refresh Rate"],
+    Docking: ["USB-A Ports", "USB-C Ports"],
+    Headset: [], // Only standard columns
+    Smartphone: ["Storage"],
+    Tablet: ["Storage"],
+    Server: ["Warranty Expiry", "CPU", "RAM", "Storage"],
+    Printer: [],
+    // Default fallback for others
+  }), []);
+
+  // Auto-hide columns based on Category Schema
+  React.useEffect(() => {
+    if (!initialData.length) return;
+
+    // 1. Detect if we are viewing a Single Category or Mixed
+    const uniqueCategories = Array.from(new Set(initialData.map((item) => item.Category)));
+    const isSingleCategory = uniqueCategories.length === 1;
+    const currentCategory = isSingleCategory ? uniqueCategories[0] : null;
+
+    // 2. Define all optional/spec columns that should be toggled
+    const allSpecColumns = [
+      "Warranty Expiry",
+      "CPU",
+      "RAM",
+      "Storage",
+      "Dedicated GPU",
+      "USB-A Ports",
+      "USB-C Ports",
+      "Dimensions",
+      "Resolution",
+      "Refresh Rate",
+    ];
+
+    // 3. Determine which columns should be visible
+    let columnsToShow: string[] = [];
+
+    if (isSingleCategory && currentCategory) {
+      // If we have a schema for this category, use it. Otherwise, defaults (empty).
+      columnsToShow = CATEGORY_COLUMN_SCHEMA[currentCategory] || [];
+
+      // Special case: "Warranty Expiry" is generally useful, maybe keep it unless explicitly excluded? 
+      // User asked for "schema/collection", so we'll stick strictly to the schema.
+    } else {
+      // Mixed / All Categories -> Hide all extended specs (User request: "return old columns")
+      columnsToShow = [];
+    }
+
+    // 4. Update Visibility State
+    setColumnVisibility((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      allSpecColumns.forEach((col) => {
+        const shouldShow = columnsToShow.includes(col);
+        if (next[col] !== shouldShow) {
+          next[col] = shouldShow;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [initialData, CATEGORY_COLUMN_SCHEMA]);
 
   /**
    * Handler for triggering actions from the row menu.
@@ -329,11 +369,13 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
           />
         ),
         cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Select row"
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
         ),
         enableSorting: false,
         enableHiding: false,
@@ -344,14 +386,7 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
         accessorKey: "Asset",
         accessorFn: (row) => `${row.Make} ${row.Model}`,
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="-ml-3 h-8 data-[state=open]:bg-accent"
-          >
-            Asset
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          <DataTableColumnHeader column={column} title="Asset" />
         ),
         cell: ({ row }) => {
           const make = row.original.Make;
@@ -379,7 +414,9 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
       // Category Column
       {
         accessorKey: "Category",
-        header: "Category",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Category" />
+        ),
         cell: ({ row }) => (
           <Badge variant="secondary" className="font-normal">
             {row.getValue("Category")}
@@ -390,7 +427,9 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
       // Service Tag Column
       {
         accessorKey: "Service Tag",
-        header: "Service Tag",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Service Tag" />
+        ),
         cell: ({ row }) => {
           const tag = row.getValue("Service Tag") as string;
           return (
@@ -398,10 +437,12 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
               <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
                 {tag}
               </code>
-              <CopyButton
-                value={tag}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <CopyButton
+                  value={tag}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                />
+              </div>
             </div>
           );
         },
@@ -410,7 +451,9 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
       // status Column
       {
         accessorKey: "State",
-        header: "Status",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Status" />
+        ),
         cell: ({ row }) => {
           const state = row.getValue("State") as string;
           let className = "border-transparent";
@@ -444,7 +487,9 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
       // Employee / Assignee Column
       {
         accessorKey: "Employee",
-        header: "Assignee",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Assignee" />
+        ),
         cell: ({ row }) => {
           const employee = row.getValue("Employee") as string;
 
@@ -475,7 +520,9 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
       // Location Column
       {
         accessorKey: "Location",
-        header: "Location",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Location" />
+        ),
         cell: ({ row }) => (
           <div className="flex items-center text-sm text-muted-foreground">
             {row.getValue("Location")}
@@ -483,11 +530,86 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
         ),
       },
 
+      // --- Dynamic / Optional Columns ---
+
+      {
+        accessorKey: "Warranty Expiry",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Warranty" />
+        ),
+        cell: ({ row }) => row.getValue("Warranty Expiry"),
+      },
+      {
+        accessorKey: "CPU",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="CPU" />
+        ),
+        cell: ({ row }) => row.getValue("CPU"),
+      },
+      {
+        accessorKey: "RAM",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="RAM" />
+        ),
+        cell: ({ row }) => row.getValue("RAM"),
+      },
+      {
+        accessorKey: "Storage",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Storage" />
+        ),
+        cell: ({ row }) => row.getValue("Storage"),
+      },
+      {
+        accessorKey: "Dedicated GPU",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="GPU" />
+        ),
+        cell: ({ row }) => row.getValue("Dedicated GPU"),
+      },
+      {
+        accessorKey: "USB-A Ports",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="USB-A" />
+        ),
+        cell: ({ row }) => row.getValue("USB-A Ports"),
+      },
+      {
+        accessorKey: "USB-C Ports",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="USB-C" />
+        ),
+        cell: ({ row }) => row.getValue("USB-C Ports"),
+      },
+      {
+        accessorKey: "Dimensions",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Dims" />
+        ),
+        cell: ({ row }) => row.getValue("Dimensions"),
+      },
+      {
+        accessorKey: "Resolution",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Res" />
+        ),
+        cell: ({ row }) => row.getValue("Resolution"),
+      },
+      {
+        accessorKey: "Refresh Rate",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Hz" />
+        ),
+        cell: ({ row }) => row.getValue("Refresh Rate"),
+      },
+
       // Actions Column
       {
         id: "actions",
         cell: ({ row }) => (
-          <AssetActions asset={row.original} onAction={handleAction} />
+          <div onClick={(e) => e.stopPropagation()}>
+            <AssetActions asset={row.original} onAction={handleAction} />
+          </div>
         ),
       },
     ],
@@ -509,6 +631,9 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    getFacetedMinMaxValues: getFacetedMinMaxValues(),
     state: {
       sorting,
       columnFilters,
@@ -522,199 +647,73 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Table Toolbar & Tabs */}
       <Tabs value={tab} className="w-full" onValueChange={setTab}>
-        <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between px-4 lg:px-6">
-          <TabsList>
-            <TabsTrigger value="all">All Assets</TabsTrigger>
-            <TabsTrigger value="active">Assigned</TabsTrigger>
-            <TabsTrigger value="draft">Unassigned</TabsTrigger>
-            <TabsTrigger value="archived" className="hidden md:flex">
-              Retired
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-2">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by Service Tag..."
-                value={
-                  (table
-                    .getColumn("Service Tag")
-                    ?.getFilterValue() as string) ?? ""
-                }
-                onChange={(event) =>
-                  table
-                    .getColumn("Service Tag")
-                    ?.setFilterValue(event.target.value)
-                }
-                className="h-9 w-[200px] pl-8 lg:w-[300px]"
-              />
-            </div>
-
-            {/* Bulk Actions Menu */}
-            {table.getFilteredSelectedRowModel().rows.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9">
-                    Bulk Actions (
-                    {table.getFilteredSelectedRowModel().rows.length})
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Batch Operations</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setActiveBulkAction("assign")}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Bulk Assign
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setActiveBulkAction("update")}
-                  >
-                    <AlertTriangle className="mr-2 h-4 w-4" />
-                    Bulk Update Status
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => setActiveBulkAction("delete")}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Selected
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
-            {/* Column Visibility Toggle */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 ml-auto">
-                  <Settings2 className="mr-2 h-4 w-4" />
-                  View
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Filtered Content */}
-        <div className="mx-4 lg:mx-6">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <AnimatePresence mode="wait">
-              <MotionTableBody
-                key={tab + pagination.pageIndex}
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-              >
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <MotionTableRow
-                      key={row.id}
-                      variants={itemVariants}
-                      data-state={row.getIsSelected() && "selected"}
-                      className={cn(
-                        "group transition-colors",
-                        row.original.Employee === "INFRASTRUCTURE" &&
-                          "bg-zinc-100/50 dark:bg-zinc-900/50 hover:bg-zinc-100/80 dark:hover:bg-zinc-900/80"
-                      )}
+        <BaseDataTable
+          table={table}
+          data={filteredData}
+          columns={columns}
+          searchKey="Service Tag"
+          renderToolbarLeft={() => (
+            <TabsList className="mr-4">
+              <TabsTrigger value="all">
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                All Assets
+              </TabsTrigger>
+              <TabsTrigger value="active">
+                <UserCheck className="mr-2 h-4 w-4" />
+                Assigned
+              </TabsTrigger>
+              <TabsTrigger value="draft">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Unassigned
+              </TabsTrigger>
+              <TabsTrigger value="archived" className="hidden md:flex">
+                <Archive className="mr-2 h-4 w-4" />
+                Retired
+              </TabsTrigger>
+            </TabsList>
+          )}
+          renderCustomActions={(table) => (
+            <>
+              {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9">
+                      <Layers className="mr-2 h-4 w-4" />
+                      Bulk Actions (
+                      {table.getFilteredSelectedRowModel().rows.length})
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Batch Operations</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setActiveBulkAction("assign")}
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-2.5">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </MotionTableRow>
-                  ))
-                ) : (
-                  <MotionTableRow variants={itemVariants}>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Bulk Assign
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setActiveBulkAction("update")}
                     >
-                      No assets found.
-                    </TableCell>
-                  </MotionTableRow>
-                )}
-              </MotionTableBody>
-            </AnimatePresence>
-          </Table>
-        </div>
-
-        {/* Pagination & Selection Stats */}
-        <div className="flex items-center justify-between px-4 lg:px-6 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Bulk Update Status
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => setActiveBulkAction("delete")}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Selected
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </>
+          )}
+        />
       </Tabs>
 
       {/* Action Dialogs */}
@@ -723,47 +722,49 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
         open={activeAction === "view"}
         onOpenChange={(open) => !open && setActiveAction(null)}
       />
-
       <AssignAssetDialog
         asset={selectedAsset}
         open={activeAction === "assign"}
         onOpenChange={(open) => !open && setActiveAction(null)}
       />
-
       <UpdateStateDialog
         asset={selectedAsset}
         open={activeAction === "update"}
         onOpenChange={(open) => !open && setActiveAction(null)}
       />
-
       <QuickEditDialog
         asset={selectedAsset}
         open={activeAction === "edit"}
         onOpenChange={(open) => !open && setActiveAction(null)}
       />
 
+      {/* Bulk Action Dialogs */}
       <BulkAssignDialog
         assets={table
           .getFilteredSelectedRowModel()
           .rows.map((row) => row.original)}
         open={activeBulkAction === "assign"}
         onOpenChange={(open) => !open && setActiveBulkAction(null)}
+        onSuccess={() => setActiveBulkAction(null)}
       />
-
       <BulkUpdateStateDialog
         assets={table
           .getFilteredSelectedRowModel()
           .rows.map((row) => row.original)}
         open={activeBulkAction === "update"}
         onOpenChange={(open) => !open && setActiveBulkAction(null)}
+        onSuccess={() => setActiveBulkAction(null)}
       />
-
       <BulkDeleteDialog
         assets={table
           .getFilteredSelectedRowModel()
           .rows.map((row) => row.original)}
         open={activeBulkAction === "delete"}
         onOpenChange={(open) => !open && setActiveBulkAction(null)}
+        onSuccess={() => {
+          setActiveBulkAction(null);
+          setRowSelection({});
+        }}
       />
     </div>
   );

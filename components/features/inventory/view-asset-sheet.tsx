@@ -1,17 +1,18 @@
+import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, CircleUser } from "lucide-react";
+import { MapPin, Clock, CircleUser, Box, Info, ShieldCheck, History } from "lucide-react";
 import { AssetLegacy } from "@/lib/types";
-import { z } from "zod";
+import { EmployeeAssetsDialog } from "@/components/features/employees/employee-assets-dialog";
 
 interface ViewAssetDialogProps {
   asset: AssetLegacy | null;
@@ -19,153 +20,220 @@ interface ViewAssetDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const getStateVariant = (state: string) => {
+  switch (state.toUpperCase()) {
+    case "GOOD": return "default";
+    case "NEW": return "secondary";
+    case "BROKEN": return "destructive";
+    case "RETIRED": return "outline";
+    default: return "secondary";
+  }
+};
+
 export function ViewAssetSheet({
   asset,
   open,
   onOpenChange,
-}: ViewAssetDialogProps) {
+  sheetColor = "#3b82f6", // Default Blue
+}: ViewAssetDialogProps & { sheetColor?: string }) {
+  const [isEmployeeSheetOpen, setIsEmployeeSheetOpen] = useState(false);
+
   if (!asset) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader className="mb-2">
-          <div className="flex items-center gap-2 text-muted-foreground mb-2">
-            <Badge variant="outline" className="w-fit">
-              {asset.Category}
-            </Badge>
-            <span className="text-sm border px-2 py-0.5 rounded-md font-mono bg-muted/50">
-              {asset["Service Tag"]}
-            </span>
-          </div>
-          <DialogTitle className="text-2xl">
-            {asset.Make} {asset.Model}
-          </DialogTitle>
-          <DialogDescription>
-            Detailed specifications and activity history for this asset.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent sheetColor={sheetColor} side="right" className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl">
+          <SheetHeader
+            className="p-6 border-b"
+            style={{ backgroundColor: "color-mix(in srgb, var(--sheet-color) 5%, transparent)" }}
+          >
+            <div className="flex items-center gap-4 mb-2">
+              <div
+                className="p-3 rounded-2xl shadow-sm ring-1"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--sheet-color) 10%, transparent)",
+                  color: "var(--sheet-color)",
+                  borderColor: "color-mix(in srgb, var(--sheet-color) 20%, transparent)"
+                }}
+              >
+                <Box className="h-6 w-6" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-background text-[10px] font-bold uppercase tracking-wider h-5">
+                    {asset.Category}
+                  </Badge>
+                  <span className="text-xs font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border">
+                    {asset["Service Tag"]}
+                  </span>
+                </div>
+                <SheetTitle className="text-2xl font-bold tracking-tight">
+                  {asset.Make} {asset.Model}
+                </SheetTitle>
+              </div>
+            </div>
+            <SheetDescription className="text-sm">
+              Full technical specifications and lifecycle activity for this device.
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="space-y-6">
-          {/* Status Section */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase">
-                Status
-              </span>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={
-                    asset.State === "GOOD"
-                      ? "default"
-                      : asset.State === "NEW"
-                      ? "secondary"
-                      : "destructive"
-                  }
-                  className="capitalize"
+          <ScrollArea className="flex-1">
+            <div className="p-6 space-y-10 pb-12">
+              {/* Essential Info Grid */}
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest leading-none">Status</span>
+                  </div>
+                  <Badge
+                    className={`px-3 py-1 font-bold tracking-tight text-xs uppercase ${asset.State === "GOOD" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-none hover:bg-emerald-500/20" : ""
+                      }`}
+                    variant={getStateVariant(asset.State) as any}
+                  >
+                    {asset.State}
+                  </Badge>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest leading-none">Location</span>
+                  </div>
+                  <span className="text-sm font-semibold flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    {asset.Location}
+                  </span>
+                </div>
+              </div>
+
+              <Separator className="opacity-50" />
+
+              {/* Current Ownership */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <CircleUser className="h-4 w-4 text-primary" />
+                    Current Custodian
+                  </h4>
+                  <Badge variant="outline" className="text-[10px] bg-muted/50">Primary Owner</Badge>
+                </div>
+                <div
+                  className={`flex items-center gap-4 rounded-2xl border bg-muted/20 p-5 transition-all hover:bg-muted/30 group ${asset.Employee !== "UNASSIGNED" ? "cursor-pointer hover:shadow-md hover:border-primary/20" : ""}`}
+                  onClick={() => {
+                    if (asset.Employee !== "UNASSIGNED") {
+                      setIsEmployeeSheetOpen(true);
+                    }
+                  }}
                 >
-                  {asset.State}
-                </Badge>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase">
-                Location
-              </span>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{asset.Location}</span>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Assignee Section */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium leading-none">
-              Current Assignee
-            </h4>
-            <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-              {asset.Employee === "UNASSIGNED" ? (
-                <div className="h-10 w-10 flex items-center justify-center rounded-full bg-muted border border-dashed">
-                  <CircleUser className="h-5 w-5 text-muted-foreground" />
-                </div>
-              ) : (
-                <Avatar className="h-10 w-10 border">
-                  <AvatarImage
-                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${asset.Employee}`}
-                    alt={asset.Employee}
-                  />
-                  <AvatarFallback>{asset.Employee.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-              )}
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">
-                  {asset.Employee === "UNASSIGNED"
-                    ? "Unassigned"
-                    : asset.Employee}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {asset.Employee === "UNASSIGNED"
-                    ? "Available for assignment"
-                    : "Active User"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* History Section */}
-          <div className="space-y-3 h-full flex flex-col">
-            <h4 className="text-sm font-medium leading-none flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Activity History
-            </h4>
-            <ScrollArea className="h-[200px] w-full rounded-md border p-4 bg-muted/10">
-              <div className="space-y-6">
-                {/* Mock History Items */}
-                <div className="flex gap-3">
-                  <div className="relative mt-1">
-                    <div className="absolute top-2 left-1/2 -ml-px h-full w-px bg-border" />
-                    <div className="relative h-2 w-2 rounded-full bg-primary" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Asset Created</p>
-                    <p className="text-xs text-muted-foreground">
-                      Added to inventory by System Admin
-                    </p>
-                    <span className="text-[10px] text-muted-foreground">
-                      Oct 24, 2023 - 10:00 AM
+                  {asset.Employee === "UNASSIGNED" ? (
+                    <div className="h-14 w-14 flex items-center justify-center rounded-xl bg-muted border-2 border-dashed group-hover:border-primary/20 transition-colors">
+                      <CircleUser className="h-7 w-7 text-muted-foreground/50" />
+                    </div>
+                  ) : (
+                    <Avatar className="h-14 w-14 rounded-xl border-2 border-background shadow-md">
+                      <AvatarImage
+                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${asset.Employee}`}
+                        alt={asset.Employee}
+                      />
+                      <AvatarFallback
+                        className="rounded-xl font-bold"
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--sheet-color) 10%, transparent)",
+                          color: "var(--sheet-color)"
+                        }}
+                      >
+                        {asset.Employee.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-base font-bold tracking-tight">
+                      {asset.Employee === "UNASSIGNED" ? "In Storage / Ready" : asset.Employee}
                     </span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <div className="relative mt-1">
-                    <div className="absolute top-2 left-1/2 -ml-px h-full w-px bg-border" />
-                    <div className="relative h-2 w-2 rounded-full bg-muted-foreground" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">
-                      Assigned to{" "}
-                      {asset.Employee === "UNASSIGNED"
-                        ? "Inventory"
-                        : asset.Employee}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Status update
-                    </p>
-                    <span className="text-[10px] text-muted-foreground">
-                      Jan 12, 2024 - 02:30 PM
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full ${asset.Employee === "UNASSIGNED" ? "bg-muted-foreground/30" : "bg-emerald-500"}`} />
+                      <span className="text-xs font-medium text-muted-foreground italic">
+                        {asset.Employee === "UNASSIGNED" ? "Inventory Control" : "Click to view profile"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+
+              <Separator className="opacity-50" />
+
+              {/* Technical Traceability */}
+              <div className="space-y-5 flex flex-col">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <History className="h-4 w-4 text-orange-500" />
+                    Device Activity Log
+                  </h4>
+                  <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Live Audit Trail</span>
+                </div>
+                <div className="space-y-6 relative ml-1">
+                  <div className="absolute top-2 bottom-2 left-[5px] w-0.5 bg-gradient-to-b from-primary/30 via-muted to-transparent" />
+
+                  {/* Event 1 */}
+                  <div className="flex gap-4 relative">
+                    <div className="h-3 w-3 rounded-full bg-primary ring-4 ring-background z-10 mt-1" />
+                    <div className="space-y-1 bg-muted/10 p-4 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/20 transition-all flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold">Asset Initialization</p>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase px-2 py-0.5 bg-muted rounded">System</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Item record generated and verified against procurement manifest.
+                      </p>
+                      <div className="flex items-center gap-2 py-1">
+                        <Clock className="h-3 w-3 text-muted-foreground/60" />
+                        <span className="text-[10px] font-semibold text-muted-foreground/60">
+                          Oct 24, 2023 - 10:00 AM
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Event 2 */}
+                  <div className="flex gap-4 relative">
+                    <div className="h-3 w-3 rounded-full bg-muted-foreground/30 ring-4 ring-background z-10 mt-1" />
+                    <div className="space-y-1 bg-muted/10 p-4 rounded-xl border border-transparent hover:border-border/50 hover:bg-muted/20 transition-all flex-1 opacity-80">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold">Status Update</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Maintenance check performed. Internal hardware passed all diagnostic benchmarks.
+                      </p>
+                      <div className="flex items-center gap-2 py-1">
+                        <Clock className="h-3 w-3 text-muted-foreground/60" />
+                        <span className="text-[10px] font-semibold text-muted-foreground/60">
+                          Jan 12, 2024 - 02:30 PM
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+
+          <div className="p-6 border-t bg-muted/20">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+              <Info className="h-4 w-4 text-blue-500 shrink-0" />
+              <p className="text-[11px] text-blue-600/80 font-medium">
+                Data synchronized with central procurement ledger. Last updated 4 hours ago.
+              </p>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </SheetContent>
+      </Sheet>
+
+      <EmployeeAssetsDialog
+        employeeName={asset.Employee}
+        open={isEmployeeSheetOpen}
+        onOpenChange={setIsEmployeeSheetOpen}
+      />
+    </>
   );
 }

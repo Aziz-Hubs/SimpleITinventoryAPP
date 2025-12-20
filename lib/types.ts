@@ -28,7 +28,7 @@ export type Asset = z.infer<typeof assetSchema>;
 // Category and State enums for type safety
 export const ASSET_CATEGORIES = [
   "Laptop",
-  "Monitor", 
+  "Monitor",
   "Docking",
   "Headset",
   "Desktop",
@@ -60,6 +60,17 @@ export const assetLegacySchema = z.object({
   Employee: z.string(),
   Location: z.string(),
   "Warranty Expiry": z.string().optional(),
+  // Extended hardware specs
+  CPU: z.string().optional(),
+  RAM: z.string().optional(),
+  Storage: z.string().optional(),
+  "Dedicated GPU": z.string().optional(),
+  "USB-A Ports": z.string().optional(),
+  "USB-C Ports": z.string().optional(),
+  // Display specs
+  Dimensions: z.string().optional(),
+  Resolution: z.string().optional(),
+  "Refresh Rate": z.string().optional(),
 });
 
 export type AssetLegacy = z.infer<typeof assetLegacySchema>;
@@ -145,11 +156,11 @@ export interface AssetFilters {
 
 // Employee type
 export interface Employee {
-  id: number;
-  name: string;
-  email?: string;
-  department?: string;
-  assignedAssets?: number[];
+  id: string;
+  fullName: string;
+  email: string;
+  department: string;
+  position: string;
 }
 
 // Deployment operation types

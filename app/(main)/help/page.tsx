@@ -45,7 +45,7 @@ export default function HelpPage() {
       {/* Support Channels */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card
-          className="bg-linear-to-t from-primary/5 to-card dark:bg-card hover:scale-[1.02] transition-all duration-200 cursor-pointer shadow-xs"
+          className="bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-500/40 hover:scale-[1.02] transition-all duration-200 cursor-pointer shadow-xs"
           asChild
         >
           <a
@@ -54,9 +54,11 @@ export default function HelpPage() {
             rel="noopener noreferrer"
           >
             <CardHeader>
-              <CardDescription>Helpdesk Site</CardDescription>
+              <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80 font-medium">Helpdesk Site</CardDescription>
               <CardTitle className="flex items-center gap-2">
-                <IconWorld className="h-5 w-5 text-primary" />
+                <div className="p-2 rounded-lg bg-indigo-500/10">
+                  <IconWorld className="h-5 w-5 text-indigo-500" />
+                </div>
                 telsource
               </CardTitle>
               <CardAction>
@@ -73,14 +75,16 @@ export default function HelpPage() {
         </Card>
 
         <Card
-          className="bg-linear-to-t from-primary/5 to-card dark:bg-card hover:scale-[1.02] transition-all duration-200 cursor-pointer shadow-xs"
+          className="bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:scale-[1.02] transition-all duration-200 cursor-pointer shadow-xs"
           asChild
         >
           <a href="mailto:helpdesk@acuative.com">
             <CardHeader>
-              <CardDescription>Email Support</CardDescription>
+              <CardDescription className="text-emerald-600/80 dark:text-emerald-400/80 font-medium">Email Support</CardDescription>
               <CardTitle className="flex items-center gap-2">
-                <IconMail className="h-5 w-5 text-primary" />
+                <div className="p-2 rounded-lg bg-emerald-500/10">
+                  <IconMail className="h-5 w-5 text-emerald-500" />
+                </div>
                 helpdesk@acuative.com
               </CardTitle>
               <CardAction>
@@ -97,14 +101,16 @@ export default function HelpPage() {
         </Card>
 
         <Card
-          className="bg-linear-to-t from-primary/5 to-card dark:bg-card hover:scale-[1.02] transition-all duration-200 cursor-pointer shadow-xs"
+          className="bg-sky-500/5 border-sky-500/20 hover:border-sky-500/40 hover:scale-[1.02] transition-all duration-200 cursor-pointer shadow-xs"
           asChild
         >
           <a href="tel:9595">
             <CardHeader>
-              <CardDescription>Line Support</CardDescription>
+              <CardDescription className="text-sky-600/80 dark:text-sky-400/80 font-medium">Line Support</CardDescription>
               <CardTitle className="flex items-center gap-2">
-                <IconPhone className="h-5 w-5 text-primary" />
+                <div className="p-2 rounded-lg bg-sky-500/10">
+                  <IconPhone className="h-5 w-5 text-sky-500" />
+                </div>
                 Extension 9595
               </CardTitle>
               <CardAction>
@@ -130,10 +136,10 @@ export default function HelpPage() {
           </div>
 
           <div className="grid gap-4">
-            <Card>
+            <Card className="bg-purple-500/5 border-purple-500/20 hover:border-purple-500/40 transition-all duration-200 hover:scale-[1.01]">
               <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <IconBox className="h-6 w-6 text-primary" />
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <IconBox className="h-6 w-6 text-purple-500" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">Inventory Master</CardTitle>
@@ -152,10 +158,10 @@ export default function HelpPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40 transition-all duration-200 hover:scale-[1.01]">
               <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <IconServer className="h-6 w-6 text-primary" />
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <IconServer className="h-6 w-6 text-amber-500" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">
@@ -174,10 +180,10 @@ export default function HelpPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40 transition-all duration-200 hover:scale-[1.01]">
               <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <IconHistory className="h-6 w-6 text-primary" />
+                <div className="p-2 bg-rose-500/10 rounded-lg">
+                  <IconHistory className="h-6 w-6 text-rose-500" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">Activities Log</CardTitle>

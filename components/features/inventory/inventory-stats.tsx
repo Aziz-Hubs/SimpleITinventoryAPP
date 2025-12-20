@@ -108,11 +108,11 @@ export function InventoryStats({ assets }: InventoryStatsProps) {
         whileHover={{ y: -5 }}
         transition={{ duration: 0.2 }}
       >
-        <Card className="relative overflow-hidden border-primary/20 h-full transition-all duration-200 hover:scale-[1.02] hover:shadow-md group">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-colors duration-500" />
+        <Card className="relative overflow-hidden bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-500/40 h-full transition-all duration-200 hover:scale-[1.02] hover:shadow-md group">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl group-hover:bg-indigo-500/20 transition-colors duration-500" />
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div className="space-y-1">
-              <CardTitle className="text-[10px] font-bold tracking-widest text-primary/70 uppercase">
+              <CardTitle className="text-[10px] font-bold tracking-widest text-indigo-600/80 dark:text-indigo-400/80 uppercase">
                 Inventory Assets
               </CardTitle>
               <div className="flex items-baseline gap-1">
@@ -124,8 +124,8 @@ export function InventoryStats({ assets }: InventoryStatsProps) {
                 </span>
               </div>
             </div>
-            <div className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-inner">
-              <DollarSign className="h-5 w-5" />
+            <div className="p-2.5 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all duration-500 shadow-inner">
+              <DollarSign className="h-5 w-5 text-indigo-500 group-hover:text-white" />
             </div>
           </CardHeader>
           <CardContent>
@@ -160,12 +160,14 @@ export function InventoryStats({ assets }: InventoryStatsProps) {
         whileHover={{ y: -5 }}
         transition={{ duration: 0.2 }}
       >
-        <Card className="h-full transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+        <Card className="h-full transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80">
               Utilization Rate
             </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-lg bg-emerald-500/10">
+              <Activity className="h-4 w-4 text-emerald-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2">
@@ -186,19 +188,21 @@ export function InventoryStats({ assets }: InventoryStatsProps) {
         transition={{ duration: 0.2 }}
         className="md:col-span-2"
       >
-        <Card className="h-full transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+        <Card className="h-full transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-purple-500/5 border-purple-500/20 hover:border-purple-500/40">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Category Distribution
+            <CardTitle className="text-sm font-medium text-purple-600/80 dark:text-purple-400/80">
+              Asset Breakdown
             </CardTitle>
-            <PieChart className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-lg bg-purple-500/10">
+              <PieChart className="h-4 w-4 text-purple-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-1">
               {topCategories.map(([cat, count]) => (
                 <div
                   key={cat}
-                  className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded-lg"
+                  className="flex flex-col items-center justify-center p-2 bg-purple-500/10 rounded-lg border border-purple-500/20"
                 >
                   <span className="text-2xl font-bold">{count}</span>
                   <span className="text-xs text-muted-foreground capitalize">

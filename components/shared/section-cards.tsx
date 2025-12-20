@@ -53,14 +53,16 @@ export function SectionCards({ stats }: SectionCardsProps) {
         whileHover={{ y: -5 }}
         transition={{ duration: 0.2 }}
       >
-        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-500/40">
           <CardHeader>
-            <CardDescription>Total Assets</CardDescription>
+            <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80 font-medium">Total Assets</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
               {stats.totalAssets.count}
             </CardTitle>
             <CardAction>
-              <Server className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-indigo-500/10">
+                <Server className="h-4 w-4 text-indigo-500" />
+              </div>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -77,14 +79,16 @@ export function SectionCards({ stats }: SectionCardsProps) {
         whileHover={{ y: -5 }}
         transition={{ duration: 0.2 }}
       >
-        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40">
           <CardHeader>
-            <CardDescription>Deployment Rate</CardDescription>
+            <CardDescription className="text-emerald-600/80 dark:text-emerald-400/80 font-medium">Deployment Rate</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
               {stats.deployment.percentage}%
             </CardTitle>
             <CardAction>
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              </div>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -100,14 +104,16 @@ export function SectionCards({ stats }: SectionCardsProps) {
         whileHover={{ y: -5 }}
         transition={{ duration: 0.2 }}
       >
-        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-sky-500/5 border-sky-500/20 hover:border-sky-500/40">
           <CardHeader>
-            <CardDescription>Ready for Issue</CardDescription>
+            <CardDescription className="text-sky-600/80 dark:text-sky-400/80 font-medium">Ready for Issue</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
               {stats.stock.ready}
             </CardTitle>
             <CardAction>
-              <Box className="h-4 w-4 text-blue-500" />
+              <div className="p-2 rounded-lg bg-sky-500/10">
+                <Box className="h-4 w-4 text-sky-500" />
+              </div>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -123,14 +129,16 @@ export function SectionCards({ stats }: SectionCardsProps) {
         whileHover={{ y: -5 }}
         transition={{ duration: 0.2 }}
       >
-        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-destructive/5 from-destructive/10 to-transparent">
+        <Card className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40">
           <CardHeader>
-            <CardDescription>Requires Attention</CardDescription>
+            <CardDescription className="text-rose-600/80 dark:text-rose-400/80 font-medium">Requires Attention</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
               {stats.maintenance.count}
             </CardTitle>
             <CardAction>
-              <AlertCircle className="h-4 w-4 text-destructive" />
+              <div className="p-2 rounded-lg bg-rose-500/10">
+                <AlertCircle className="h-4 w-4 text-rose-500" />
+              </div>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">

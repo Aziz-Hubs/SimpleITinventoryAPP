@@ -13,12 +13,10 @@ export default async function Page() {
   const stats = await getDashboardStats();
 
   return (
-    <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="@container/main flex flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-6">
         <SectionCards stats={stats} />
-        <div className="px-4 lg:px-6">
-          <ChartAreaInteractive data={chartData} />
-        </div>
+        <ChartAreaInteractive data={chartData} />
         <DataTable data={assets} />
       </div>
     </div>

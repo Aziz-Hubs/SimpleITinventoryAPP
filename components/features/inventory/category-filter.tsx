@@ -86,16 +86,7 @@ export function CategoryFilter({
         </SelectContent>
       </Select>
 
-      {selectedCategory && selectedCategory !== "all" && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium"
-        >
-          Filtered
-        </motion.div>
-      )}
+
     </motion.div>
   );
 }

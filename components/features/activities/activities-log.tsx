@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import {
   Card,
   CardContent,
@@ -45,78 +45,13 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ActivityDetailsSheet } from "./activity-details-sheet";
+import { getActionCategory, getCategoryDetails } from "@/lib/activity-categories";
+
 
 interface ActivitiesLogProps {
   activities: Activity[];
 }
-
-// ----------------------------------------------------------------------
-// Helper Functions
-// ----------------------------------------------------------------------
-
-const getActionCategory = (action: string) => {
-  const a = action.toLowerCase();
-  if (
-    a.includes("assigned") ||
-    a.includes("check") ||
-    a.includes("return") ||
-    a.includes("requested")
-  )
-    return "assignment";
-  if (
-    a.includes("maintenance") ||
-    a.includes("firmware") ||
-    a.includes("backup") ||
-    a.includes("deployed") ||
-    a.includes("restarted")
-  )
-    return "maintenance";
-  if (a.includes("user") || a.includes("permission") || a.includes("logged"))
-    return "account";
-  if (a.includes("anomaly") || a.includes("flagged") || a.includes("detected"))
-    return "system";
-  return "other";
-};
-
-const getCategoryDetails = (category: string) => {
-  switch (category) {
-    case "assignment":
-      return {
-        icon: <UserPlus className="h-3.5 w-3.5 mr-1" />,
-        color:
-          "bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20",
-        label: "Assignment",
-      };
-    case "maintenance":
-      return {
-        icon: <Settings2 className="h-3.5 w-3.5 mr-1" />,
-        color:
-          "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20",
-        label: "Maintenance",
-      };
-    case "account":
-      return {
-        icon: <User className="h-3.5 w-3.5 mr-1" />,
-        color:
-          "bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20",
-        label: "Account",
-      };
-    case "system":
-      return {
-        icon: <Shield className="h-3.5 w-3.5 mr-1" />,
-        color:
-          "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20",
-        label: "System",
-      };
-    default:
-      return {
-        icon: <ActivityIcon className="h-3.5 w-3.5 mr-1" />,
-        color:
-          "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-500/20",
-        label: "Activity",
-      };
-  }
-};
 
 const formatRelativeTime = (timestamp: string) => {
   const date = new Date(timestamp);
@@ -136,29 +71,6 @@ const formatRelativeTime = (timestamp: string) => {
 // Animations
 // ----------------------------------------------------------------------
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.03,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 260,
-      damping: 20,
-    },
-  },
-};
-
 // ----------------------------------------------------------------------
 // Main Component
 // ----------------------------------------------------------------------
@@ -169,6 +81,8 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const itemsPerPage = 10;
 
   // Derive unique users for filter
@@ -264,6 +178,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
   return (
     <div className="space-y-4">
       {/* Header Area */}
+      {/* ... (Header content remains the same) */}
       <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between px-4 lg:px-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Activities Log</h2>
@@ -308,16 +223,21 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
         <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2 md:pb-0">
           <Select value={userFilter} onValueChange={setUserFilter}>
             <SelectTrigger className="h-9 w-[140px] border-dashed">
-              <div className="flex items-center">
-                <User className="mr-2 h-4 w-4 text-muted-foreground" />
-                <SelectValue placeholder="User" />
-              </div>
+              <SelectValue placeholder="User" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
+              <SelectItem value="all">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>All Users</span>
+                </div>
+              </SelectItem>
               {uniqueUsers.map((user) => (
                 <SelectItem key={user} value={user}>
-                  {user}
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>{user}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -325,33 +245,77 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
 
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="h-9 w-[140px] border-dashed">
-              <div className="flex items-center">
-                <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                <SelectValue placeholder="Category" />
-              </div>
+              <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="assignment">Assignment</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="account">Account</SelectItem>
-              <SelectItem value="system">System</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              <SelectItem value="all">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>All Categories</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="assignment">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  <span>Assignment</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="maintenance">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4" />
+                  <span>Maintenance</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="account">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>Account</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="system">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span>System</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="other">
+                <div className="flex items-center gap-2">
+                  <ActivityIcon className="h-4 w-4" />
+                  <span>Other</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger className="h-9 w-[140px] border-dashed">
-              <div className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                <SelectValue placeholder="Date" />
-              </div>
+              <SelectValue placeholder="Date" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Anytime</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="yesterday">Yesterday</SelectItem>
-              <SelectItem value="last7">Last 7 Days</SelectItem>
+              <SelectItem value="all">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Anytime</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="today">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Today</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="yesterday">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Yesterday</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="last7">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Last 7 Days</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -362,112 +326,126 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[200px]">User</TableHead>
-              <TableHead>Activity</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead className="text-right">Time</TableHead>
+              <TableHead className="w-[200px]">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  User
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-2">
+                  <ActivityIcon className="h-4 w-4" />
+                  Activity
+                </div>
+              </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Category
+                </div>
+              </TableHead>
+              <TableHead className="text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <Clock className="h-4 w-4" />
+                  Time
+                </div>
+              </TableHead>
             </TableRow>
           </TableHeader>
-          <AnimatePresence mode="wait">
-            <motion.tbody
-              key={`${userFilter}-${categoryFilter}-${dateFilter}-${currentPage}`}
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="relative"
-              data-slot="table-body"
-            >
-              {currentActivities.length > 0 ? (
-                currentActivities.map((activity) => {
-                  const category = getActionCategory(activity.action);
-                  const details = getCategoryDetails(category);
+          <TableBody>
+            {currentActivities.length > 0 ? (
+              currentActivities.map((activity) => {
+                const category = getActionCategory(activity.action);
+                const details = getCategoryDetails(category);
 
-                  return (
-                    <motion.tr
-                      key={activity.id}
-                      variants={itemVariants}
-                      className="group border-b last:border-0 transition-colors hover:bg-muted/50"
-                    >
-                      <TableCell className="py-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 border">
-                            <AvatarImage
-                              src={activity.user.avatar}
-                              alt={activity.user.name}
-                            />
-                            <AvatarFallback>
-                              {activity.user.initials}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-sm">
-                            {activity.user.name}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-normal text-foreground">
-                            {activity.action}{" "}
-                            <span className="font-medium">
-                              {activity.target}
-                            </span>
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "font-normal border-transparent",
-                            details.color
-                          )}
-                        >
-                          {details.icon}
-                          {details.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-4 text-right">
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-sm text-foreground">
-                            {formatRelativeTime(activity.timestamp)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground flex items-center">
-                            <Clock className="mr-1 h-3 w-3" />
-                            {new Date(activity.timestamp).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
-                          </span>
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="h-32 text-center text-muted-foreground"
+                return (
+                  <TableRow
+                    key={activity.id}
+                    className="group border-b last:border-0 transition-colors hover:bg-muted/50 cursor-pointer"
+                    onClick={() => {
+                      setSelectedActivity(activity);
+                      setIsSheetOpen(true);
+                    }}
                   >
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      <ActivityIcon className="h-8 w-8 text-muted-foreground/20" />
-                      <p>No activity logs found matches your criteria.</p>
-                      <Button
-                        variant="link"
-                        onClick={resetFilters}
-                        className="text-primary h-auto p-0"
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8 border">
+                          <AvatarImage
+                            src={activity.user.avatar}
+                            alt={activity.user.name}
+                          />
+                          <AvatarFallback>
+                            {activity.user.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium text-sm">
+                          {activity.user.name}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-normal text-foreground">
+                          {activity.action}{" "}
+                          <span className="font-medium">
+                            {activity.target}
+                          </span>
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-normal border-transparent",
+                          details.color
+                        )}
                       >
-                        Clear all filters
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </motion.tbody>
-          </AnimatePresence>
+                        <details.icon className="h-3.5 w-3.5 mr-1" />
+                        {details.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-sm text-foreground">
+                          {formatRelativeTime(activity.timestamp)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground flex items-center">
+                          <Clock className="mr-1 h-3 w-3" />
+                          {new Date(activity.timestamp).toLocaleTimeString(
+                            [],
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="h-32 text-center text-muted-foreground"
+                >
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <ActivityIcon className="h-8 w-8 text-muted-foreground/20" />
+                    <p>No activity logs found matches your criteria.</p>
+                    <Button
+                      variant="link"
+                      onClick={resetFilters}
+                      className="text-primary h-auto p-0"
+                    >
+                      Clear all filters
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
         </Table>
       </div>
 
@@ -517,6 +495,12 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
           </Button>
         </div>
       </div>
+
+      <ActivityDetailsSheet
+        activity={selectedActivity}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+      />
     </div>
   );
 }

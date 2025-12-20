@@ -13,24 +13,24 @@ import inventoryData from '@/data/inv.json';
  * Convert inv.json format to Asset type
  */
 interface InventoryItem {
-    category?: string;
-    state?: string;
-    warrantyexpiry?: string;
-    make?: string;
-    model?: string;
-    cpu?: string;
-    ram?: string;
-    storage?: string;
-    dedicatedgpu?: string;
-    'usb-aports'?: string;
-    'usb-cports'?: string;
-    servicetag?: string;
-    employee?: string;
-    additionalcomments?: string;
-    location?: string;
-    dimensions?: string;
-    resolution?: string;
-    refreshhertz?: string;
+  category?: string;
+  state?: string;
+  warrantyexpiry?: string;
+  make?: string;
+  model?: string;
+  cpu?: string;
+  ram?: string;
+  storage?: string;
+  dedicatedgpu?: string;
+  'usb-aports'?: string;
+  'usb-cports'?: string;
+  servicetag?: string;
+  employee?: string;
+  additionalcomments?: string;
+  location?: string;
+  dimensions?: string;
+  resolution?: string;
+  refreshhertz?: string;
 }
 
 function convertInventoryData(): Asset[] {
@@ -150,6 +150,42 @@ export async function getAssetById(id: number): Promise<Asset> {
   }
 
   return apiClient.get<Asset>(`/assets/${id}`);
+}
+
+/**
+ * Get a single asset by service tag
+ */
+export async function getAssetByServiceTag(serviceTag: string): Promise<Asset | null> {
+  if (isMockDataEnabled()) {
+    const asset = MOCK_INVENTORY.find(
+      (a) => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()
+    );
+    return Promise.resolve(asset || null);
+  }
+
+  // Call real API
+  const response = await getAssets({ search: serviceTag });
+  return response.data.find(a => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()) || null;
+}
+
+/**
+ * Search assets for autocomplete
+ */
+export async function searchAssets(query: string): Promise<Asset[]> {
+  if (isMockDataEnabled()) {
+    if (!query) return Promise.resolve([]);
+    const lowerQuery = query.toLowerCase();
+    const results = MOCK_INVENTORY.filter(
+      (a) =>
+        a.servicetag?.toLowerCase().includes(lowerQuery) ||
+        a.model?.toLowerCase().includes(lowerQuery)
+    ).slice(0, 10); // Limit to 10 results
+    return Promise.resolve(results);
+  }
+
+  // Real API implementation
+  const response = await getAssets({ search: query, pageSize: 10 });
+  return response.data;
 }
 
 /**

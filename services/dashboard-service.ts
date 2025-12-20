@@ -5,24 +5,24 @@ import inventoryData from "@/data/inv.json";
 // Mock Data (Legacy format for backward compatibility)
 // Mock Data (Derived from inv.json for full compatibility)
 interface InventoryItem {
-    category?: string;
-    state?: string;
-    warrantyexpiry?: string;
-    make?: string;
-    model?: string;
-    cpu?: string;
-    ram?: string;
-    storage?: string;
-    dedicatedgpu?: string;
-    'usb-aports'?: string;
-    'usb-cports'?: string;
-    servicetag?: string;
-    employee?: string;
-    additionalcomments?: string;
-    location?: string;
-    dimensions?: string;
-    resolution?: string;
-    refreshhertz?: string;
+  category?: string;
+  state?: string;
+  warrantyexpiry?: string;
+  make?: string;
+  model?: string;
+  cpu?: string;
+  ram?: string;
+  storage?: string;
+  dedicatedgpu?: string;
+  'usb-aports'?: string;
+  'usb-cports'?: string;
+  servicetag?: string;
+  employee?: string;
+  additionalcomments?: string;
+  location?: string;
+  dimensions?: string;
+  resolution?: string;
+  refreshhertz?: string;
 }
 
 export const MOCK_ASSETS: AssetLegacy[] = (inventoryData as InventoryItem[]).map((item, index) => ({
@@ -34,7 +34,17 @@ export const MOCK_ASSETS: AssetLegacy[] = (inventoryData as InventoryItem[]).map
   State: item.state || "N/A",
   Employee: item.employee || "UNASSIGNED",
   Location: item.location || "N/A",
-  "Warranty Expiry": item.warrantyexpiry || "N/A"
+  "Warranty Expiry": item.warrantyexpiry || "N/A",
+  // Extended fields mapping
+  CPU: item.cpu || "N/A",
+  RAM: item.ram || "N/A",
+  Storage: item.storage || "N/A",
+  "Dedicated GPU": item.dedicatedgpu || "N/A",
+  "USB-A Ports": item["usb-aports"] || "N/A",
+  "USB-C Ports": item["usb-cports"] || "N/A",
+  Dimensions: item.dimensions || "N/A",
+  Resolution: item.resolution || "N/A",
+  "Refresh Rate": item.refreshhertz || "N/A"
 }));
 
 const MOCK_CHART_DATA: ChartDataPoint[] = [
@@ -136,10 +146,10 @@ const totalCount = MOCK_ASSETS.length;
 const inStockCount = totalCount - assignedCount;
 
 export const MOCK_STATS: DashboardStats = {
-  totalAssets: { 
-    count: totalCount, 
-    assigned: assignedCount, 
-    inStock: inStockCount 
+  totalAssets: {
+    count: totalCount,
+    assigned: assignedCount,
+    inStock: inStockCount
   },
   deployment: {
     count: assignedCount,
@@ -330,7 +340,7 @@ export async function getAssets(): Promise<AssetLegacy[]> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_ASSETS);
   }
-  
+
   // Call real API and convert to legacy format if needed
   const response = await apiClient.get<{ data: AssetLegacy[] }>('/assets');
   return response.data || [];
@@ -340,7 +350,7 @@ export async function getChartData(): Promise<ChartDataPoint[]> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_CHART_DATA);
   }
-  
+
   const response = await apiClient.get<{ data: ChartDataPoint[] }>('/dashboard/chart-data');
   return response.data || [];
 }
@@ -349,7 +359,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_STATS);
   }
-  
+
   return apiClient.get<DashboardStats>('/dashboard/stats');
 }
 
@@ -357,7 +367,7 @@ export async function getActivities(): Promise<Activity[]> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_ACTIVITIES);
   }
-  
+
   const response = await apiClient.get<{ data: Activity[] }>('/activities');
   return response.data || [];
 }
