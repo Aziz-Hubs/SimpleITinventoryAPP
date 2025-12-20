@@ -61,9 +61,8 @@
     }
   }
 
-
-
-  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite
+    alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
 }
 
@@ -269,25 +268,31 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(at 0% 0%,
+    background-image: radial-gradient(
+        at 0% 0%,
         oklch(0.97 0.01 260 / 0.3) 0px,
-        transparent 50%),
-      radial-gradient(at 100% 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 100% 0%,
         oklch(0.95 0.02 200 / 0.3) 0px,
-        transparent 50%);
+        transparent 50%
+      );
     background-attachment: fixed;
   }
 
   .dark body {
-    background-image: radial-gradient(at 0% 0%,
+    background-image: radial-gradient(
+        at 0% 0%,
         oklch(0.2 0.05 260 / 0.3) 0px,
-        transparent 50%),
-      radial-gradient(at 100% 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 100% 0%,
         oklch(0.15 0.05 200 / 0.3) 0px,
-        transparent 50%);
+        transparent 50%
+      );
   }
-
-
 }
 
 @layer utilities {
@@ -295,7 +300,7 @@
     @apply bg-linear-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground shadow-lg hover:shadow-primary/20 transition-all duration-300;
   }
 
-  .gradient-glass {
+  .glass {
     @apply bg-white/40 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-xl;
   }
 

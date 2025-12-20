@@ -81,7 +81,12 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function EmployeesTable() {
+interface EmployeesTableProps {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+}
+
+export function EmployeesTable({ title, description }: EmployeesTableProps) {
   // --- State Managment ---
   const [employees, setEmployees] = React.useState<Employee[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -126,6 +131,8 @@ export function EmployeesTable() {
   const [viewingEmployee, setViewingEmployee] = React.useState<Employee | null>(
     null
   );
+  const [isViewingEmployeeOpen, setIsViewingEmployeeOpen] =
+    React.useState(false);
 
   // --- Form Handlers ---
   const handleAddEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -410,7 +417,12 @@ export function EmployeesTable() {
         data={employees}
         columns={columns}
         searchKey="fullName"
-        onRowClick={(employee) => setViewingEmployee(employee)}
+        title={title}
+        description={description}
+        onRowClick={(employee) => {
+          setViewingEmployee(employee);
+          setIsViewingEmployeeOpen(true);
+        }}
         renderCustomActions={(table) => (
           <div className="flex items-center gap-3">
             <AnimatePresence>
@@ -665,7 +677,9 @@ export function EmployeesTable() {
                           <span className="text-muted-foreground leading-none">
                             ID
                           </span>
-                          <span className="font-mono">{editingEmployee.id}</span>
+                          <span className="font-mono">
+                            {editingEmployee.id}
+                          </span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-muted-foreground leading-none">
@@ -782,8 +796,8 @@ export function EmployeesTable() {
       {/* View Employee Detail Sheet */}
       <EmployeeDetailSheet
         employee={viewingEmployee}
-        open={!!viewingEmployee}
-        onOpenChange={(open) => !open && setViewingEmployee(null)}
+        open={isViewingEmployeeOpen}
+        onOpenChange={setIsViewingEmployeeOpen}
       />
     </div>
   );

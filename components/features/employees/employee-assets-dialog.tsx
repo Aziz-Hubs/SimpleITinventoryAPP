@@ -28,7 +28,7 @@ import {
   Box,
   HardDrive,
   User,
-  History
+  History,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -95,7 +95,10 @@ export function EmployeeAssetsDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl"
+      >
         <SheetHeader className="p-6 border-b bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-sm">
@@ -104,7 +107,10 @@ export function EmployeeAssetsDialog({
             <div>
               <SheetTitle className="text-xl">Assigned Assets</SheetTitle>
               <SheetDescription>
-                Equipment currently assigned to <span className="font-semibold text-foreground">{employeeName}</span>
+                Equipment currently assigned to{" "}
+                <span className="font-semibold text-foreground">
+                  {employeeName}
+                </span>
               </SheetDescription>
             </div>
           </div>
@@ -117,16 +123,24 @@ export function EmployeeAssetsDialog({
                 <div className="relative">
                   <div className="h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
                 </div>
-                <p className="text-sm text-muted-foreground animate-pulse font-medium">Loading inventory...</p>
+                <p className="text-sm text-muted-foreground animate-pulse font-medium">
+                  Loading inventory...
+                </p>
               </div>
             ) : assets.length > 0 ? (
               <div className="p-0">
                 <Table>
-                  <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                  <TableHeader className="bg-muted/30 sticky top-0 z-10">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="px-6 h-10 text-[11px] font-bold uppercase tracking-wider">Device</TableHead>
-                      <TableHead className="px-4 h-10 text-[11px] font-bold uppercase tracking-wider">Service Tag</TableHead>
-                      <TableHead className="px-6 h-10 text-[11px] font-bold uppercase tracking-wider text-right">Status</TableHead>
+                      <TableHead className="px-6 h-10 text-[11px] font-bold uppercase tracking-wider">
+                        Device
+                      </TableHead>
+                      <TableHead className="px-4 h-10 text-[11px] font-bold uppercase tracking-wider">
+                        Service Tag
+                      </TableHead>
+                      <TableHead className="px-6 h-10 text-[11px] font-bold uppercase tracking-wider text-right">
+                        Status
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -179,7 +193,8 @@ export function EmployeeAssetsDialog({
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No Assets Found</h3>
                 <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                  This employee currently has no equipment registered under their profile.
+                  This employee currently has no equipment registered under
+                  their profile.
                 </p>
               </div>
             )}

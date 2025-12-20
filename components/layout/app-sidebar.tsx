@@ -12,6 +12,7 @@ import {
   IconServer,
   IconHistory,
   IconPencil,
+  IconTool,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -61,6 +62,11 @@ const data = {
       url: "/activities",
       icon: IconHistory,
     },
+    {
+      title: "Maintenance",
+      url: "/maintenance",
+      icon: IconTool,
+    },
   ],
   navSecondary: [
     {
@@ -98,7 +104,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, []);
 
   return (
-    <Sidebar collapsible="icon" className="glass border-r-0" {...props}>
+    <Sidebar
+      collapsible="icon"
+      className="glass border-r-0 border-primary/10"
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

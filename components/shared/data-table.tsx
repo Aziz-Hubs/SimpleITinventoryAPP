@@ -211,7 +211,19 @@ function AssetActions({ asset, onAction }: AssetActionsProps) {
 // Main Component
 // ----------------------------------------------------------------------
 
-export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
+export function DataTable({
+  data: initialData,
+  title,
+  description,
+  renderToolbarLeft: externalToolbarLeft,
+  renderCustomActions: externalCustomActions,
+}: {
+  data: AssetLegacy[];
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  renderToolbarLeft?: (table: any) => React.ReactNode;
+  renderCustomActions?: (table: any) => React.ReactNode;
+}) {
   // --- State Managment ---
   const [tab, setTab] = React.useState("all");
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -244,25 +256,45 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
   }, [tab]);
 
   // Column Schema Definition
-  const CATEGORY_COLUMN_SCHEMA: Record<string, string[]> = React.useMemo(() => ({
-    Laptop: ["Warranty Expiry", "CPU", "RAM", "Storage", "USB-A Ports", "USB-C Ports"],
-    Desktop: ["Warranty Expiry", "CPU", "RAM", "Storage", "Dedicated GPU", "USB-A Ports", "USB-C Ports"],
-    Monitor: ["Dimensions", "Resolution", "Refresh Rate"],
-    Docking: ["USB-A Ports", "USB-C Ports"],
-    Headset: [], // Only standard columns
-    Smartphone: ["Storage"],
-    Tablet: ["Storage"],
-    Server: ["Warranty Expiry", "CPU", "RAM", "Storage"],
-    Printer: [],
-    // Default fallback for others
-  }), []);
+  const CATEGORY_COLUMN_SCHEMA: Record<string, string[]> = React.useMemo(
+    () => ({
+      Laptop: [
+        "Warranty Expiry",
+        "CPU",
+        "RAM",
+        "Storage",
+        "USB-A Ports",
+        "USB-C Ports",
+      ],
+      Desktop: [
+        "Warranty Expiry",
+        "CPU",
+        "RAM",
+        "Storage",
+        "Dedicated GPU",
+        "USB-A Ports",
+        "USB-C Ports",
+      ],
+      Monitor: ["Dimensions", "Resolution", "Refresh Rate"],
+      Docking: ["USB-A Ports", "USB-C Ports"],
+      Headset: [], // Only standard columns
+      Smartphone: ["Storage"],
+      Tablet: ["Storage"],
+      Server: ["Warranty Expiry", "CPU", "RAM", "Storage"],
+      Printer: [],
+      // Default fallback for others
+    }),
+    []
+  );
 
   // Auto-hide columns based on Category Schema
   React.useEffect(() => {
     if (!initialData.length) return;
 
     // 1. Detect if we are viewing a Single Category or Mixed
-    const uniqueCategories = Array.from(new Set(initialData.map((item) => item.Category)));
+    const uniqueCategories = Array.from(
+      new Set(initialData.map((item) => item.Category))
+    );
     const isSingleCategory = uniqueCategories.length === 1;
     const currentCategory = isSingleCategory ? uniqueCategories[0] : null;
 
@@ -287,7 +319,7 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
       // If we have a schema for this category, use it. Otherwise, defaults (empty).
       columnsToShow = CATEGORY_COLUMN_SCHEMA[currentCategory] || [];
 
-      // Special case: "Warranty Expiry" is generally useful, maybe keep it unless explicitly excluded? 
+      // Special case: "Warranty Expiry" is generally useful, maybe keep it unless explicitly excluded?
       // User asked for "schema/collection", so we'll stick strictly to the schema.
     } else {
       // Mixed / All Categories -> Hide all extended specs (User request: "return old columns")
@@ -618,6 +650,10 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
 
   // --- Table Instance ---
 
+  // --- Table Instance ---
+
+  // Memoize table options to avoid unnecessary re-renders and lint warnings
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -654,27 +690,33 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
           columns={columns}
           searchKey="Service Tag"
           renderToolbarLeft={() => (
-            <TabsList className="mr-4">
-              <TabsTrigger value="all">
-                <LayoutGrid className="mr-2 h-4 w-4" />
-                All Assets
-              </TabsTrigger>
-              <TabsTrigger value="active">
-                <UserCheck className="mr-2 h-4 w-4" />
-                Assigned
-              </TabsTrigger>
-              <TabsTrigger value="draft">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Unassigned
-              </TabsTrigger>
-              <TabsTrigger value="archived" className="hidden md:flex">
-                <Archive className="mr-2 h-4 w-4" />
-                Retired
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-3">
+              {externalToolbarLeft?.(table)}
+              <TabsList className="mr-4">
+                <TabsTrigger value="all">
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  All Assets
+                </TabsTrigger>
+                <TabsTrigger value="active">
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Assigned
+                </TabsTrigger>
+                <TabsTrigger value="draft">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Unassigned
+                </TabsTrigger>
+                <TabsTrigger value="archived" className="hidden md:flex">
+                  <Archive className="mr-2 h-4 w-4" />
+                  Retired
+                </TabsTrigger>
+              </TabsList>
+            </div>
           )}
+          title={title}
+          description={description}
           renderCustomActions={(table) => (
-            <>
+            <div className="flex items-center gap-2">
+              {externalCustomActions?.(table)}
               {table.getFilteredSelectedRowModel().rows.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -711,7 +753,7 @@ export function DataTable({ data: initialData }: { data: AssetLegacy[] }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-            </>
+            </div>
           )}
         />
       </Tabs>

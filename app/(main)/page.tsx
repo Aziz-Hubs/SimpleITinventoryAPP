@@ -13,12 +13,14 @@ export default async function Page() {
   const stats = await getDashboardStats();
 
   return (
-    <div className="@container/main flex flex-1 flex-col gap-6 p-6">
-      <div className="flex flex-col gap-6">
-        <SectionCards stats={stats} />
-        <ChartAreaInteractive data={chartData} />
-        <DataTable data={assets} />
-      </div>
+    <div className="@container/main flex flex-1 flex-col gap-8 p-8 max-w-(--breakpoint-2xl) mx-auto w-full">
+      <SectionCards stats={stats} assets={assets} />
+      <ChartAreaInteractive data={chartData} />
+      <DataTable
+        data={assets}
+        title="Recent Assets"
+        description="A comprehensive overview of the latest hardware and equipment in your inventory."
+      />
     </div>
   );
 }

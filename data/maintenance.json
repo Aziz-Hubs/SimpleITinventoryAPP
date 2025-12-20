@@ -1,0 +1,96 @@
+[
+  {
+    "id": "MNT-001",
+    "assetTag": "F3XVC24",
+    "assetCategory": "Laptop",
+    "assetMake": "Dell",
+    "assetModel": "Vostro 3520",
+    "issue": "Screen flickering",
+    "description": "Display shows intermittent flickering, especially when on battery power",
+    "category": "hardware",
+    "status": "in-progress",
+    "priority": "high",
+    "technician": "Alex Doe",
+    "reportedBy": "Abdullah, Laila",
+    "reportedDate": "2024-12-15",
+    "scheduledDate": "2024-12-16",
+    "estimatedCost": 150,
+    "notes": [],
+    "timeline": [
+      {
+        "id": "evt_1",
+        "type": "creation",
+        "title": "Variable Ticket Created",
+        "description": "Ticket created by Abdullah, Laila",
+        "timestamp": "2024-12-15T09:00:00Z",
+        "user": "Abdullah, Laila"
+      },
+      {
+        "id": "evt_2",
+        "type": "assignment",
+        "title": "Technician Assigned",
+        "description": "Assigned to Alex Doe",
+        "timestamp": "2024-12-15T10:30:00Z",
+        "user": "System Admin"
+      },
+      {
+        "id": "evt_3",
+        "type": "status_change",
+        "title": "Status Updated",
+        "description": "Changed from Pending to In Progress",
+        "timestamp": "2024-12-16T09:00:00Z",
+        "user": "Alex Doe"
+      }
+    ],
+    "comments": [
+       {
+        "id": "c_1",
+        "author": "Alex Doe",
+        "content": "Initial diagnosis suggests a loose connection in the display cable. Will check.",
+        "timestamp": "2024-12-16T09:15:00Z",
+        "isInternal": false
+       }
+    ],
+    "cost": {
+        "partsCost": 100,
+        "laborCost": 50,
+        "currency": "USD"
+    }
+  },
+  {
+    "id": "MNT-002",
+    "assetTag": "CFNVC24",
+    "assetCategory": "Laptop",
+    "assetMake": "Dell",
+    "assetModel": "Vostro 3520",
+    "issue": "Keyboard replacement",
+    "description": "Several keys not responding properly",
+    "category": "hardware",
+    "status": "completed",
+    "priority": "medium",
+    "technician": "Jane Smith",
+    "reportedBy": "Abu Al Rous, Mohammed",
+    "reportedDate": "2024-12-10",
+    "completedDate": "2024-12-12",
+    "estimatedCost": 80,
+    "actualCost": 75,
+    "notes": [],
+    "timeline": [
+        {
+            "id": "evt_2_1",
+            "type": "creation",
+            "title": "Ticket Created",
+            "timestamp": "2024-12-10T14:00:00Z",
+            "user": "Abu Al Rous, Mohammed"
+        },
+        {
+            "id": "evt_2_2",
+            "type": "status_change",
+            "title": "Work Completed",
+            "timestamp": "2024-12-12T16:00:00Z",
+            "user": "Jane Smith"
+        }
+    ],
+    "comments": []
+  }
+]

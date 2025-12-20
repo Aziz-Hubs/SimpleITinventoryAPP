@@ -34,7 +34,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { createMaintenanceRequest } from "@/services/maintenance-service";
-import { getAssetByServiceTag, searchAssets } from "@/services/inventory-service";
+import {
+  getAssetByServiceTag,
+  searchAssets,
+} from "@/services/inventory-service";
 import type {
   MaintenanceCategory,
   MaintenancePriority,
@@ -59,7 +62,7 @@ import {
   IconAlertTriangle,
   IconCircleCheck,
   IconCircleDot,
-  IconCircle
+  IconCircle,
 } from "@tabler/icons-react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +111,7 @@ export function MaintenanceDialog({
 
   // Handle service tag search and suggestions
   const handleSearchChange = async (value: string) => {
-    setFormData(prev => ({ ...prev, assetTag: value }));
+    setFormData((prev) => ({ ...prev, assetTag: value }));
     if (value.length >= 2) {
       try {
         const results = await searchAssets(value);
@@ -128,7 +131,10 @@ export function MaintenanceDialog({
         setSearching(true);
         try {
           // Check if we have an exact match in suggestions first to avoid API call
-          const exactMatch = suggestions.find(s => s.servicetag.toLowerCase() === formData.assetTag.toLowerCase());
+          const exactMatch = suggestions.find(
+            (s) =>
+              s.servicetag.toLowerCase() === formData.assetTag.toLowerCase()
+          );
 
           let asset: Asset | null | undefined = exactMatch;
           if (!asset) {
@@ -229,8 +235,14 @@ export function MaintenanceDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl overflow-hidden">
-        <form onSubmit={handleSubmit} className="flex flex-col h-full bg-background">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl overflow-hidden"
+      >
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col h-full bg-background"
+        >
           {/* Header */}
           <div className="p-6 bg-linear-to-br from-sky-500/10 via-background to-background border-b">
             <SheetHeader>
@@ -239,16 +251,19 @@ export function MaintenanceDialog({
                   <IconSettings className="h-6 w-6 text-sky-500" />
                 </div>
                 <div>
-                  <SheetTitle className="text-2xl font-bold tracking-tight">Create Maintenance Request</SheetTitle>
+                  <SheetTitle className="text-2xl font-bold tracking-tight">
+                    Create Maintenance Request
+                  </SheetTitle>
                   <SheetDescription className="text-muted-foreground">
-                    Submit a new maintenance request for an asset in your inventory.
+                    Submit a new maintenance request for an asset in your
+                    inventory.
                   </SheetDescription>
                 </div>
               </div>
             </SheetHeader>
           </div>
 
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-8 pb-10">
               {/* TOP: Item Details */}
               <div className="space-y-5 rounded-2xl border bg-card/40 p-6 shadow-sm backdrop-blur-sm relative overflow-hidden group">
@@ -258,13 +273,22 @@ export function MaintenanceDialog({
 
                 <div className="flex items-center gap-2 mb-2 pb-2 border-b">
                   <IconTag className="h-4 w-4 text-sky-500" />
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Item Information</h3>
-                  {searching && <IconLoader2 className="h-4 w-4 animate-spin ml-auto text-sky-500" />}
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+                    Item Information
+                  </h3>
+                  {searching && (
+                    <IconLoader2 className="h-4 w-4 animate-spin ml-auto text-sky-500" />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 flex flex-col">
-                    <Label htmlFor="assetTag" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Service Tag *</Label>
+                    <Label
+                      htmlFor="assetTag"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Service Tag *
+                    </Label>
                     <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                       <PopoverTrigger asChild>
                         <Button
@@ -292,18 +316,27 @@ export function MaintenanceDialog({
                                   key={asset.id}
                                   value={asset.servicetag}
                                   onSelect={() => {
-                                    setFormData(prev => ({ ...prev, assetTag: asset.servicetag }));
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      assetTag: asset.servicetag,
+                                    }));
                                     setOpenCombobox(false);
                                   }}
                                 >
                                   <div className="flex flex-col">
-                                    <span className="font-bold">{asset.servicetag}</span>
-                                    <span className="text-xs text-muted-foreground">{asset.make} {asset.model}</span>
+                                    <span className="font-bold">
+                                      {asset.servicetag}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {asset.make} {asset.model}
+                                    </span>
                                   </div>
                                   <Check
                                     className={cn(
                                       "ml-auto h-4 w-4",
-                                      formData.assetTag === asset.servicetag ? "opacity-100" : "opacity-0"
+                                      formData.assetTag === asset.servicetag
+                                        ? "opacity-100"
+                                        : "opacity-0"
                                     )}
                                   />
                                 </CommandItem>
@@ -316,7 +349,12 @@ export function MaintenanceDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="assetCategory" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Category *</Label>
+                    <Label
+                      htmlFor="assetCategory"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Category *
+                    </Label>
                     <Select
                       value={formData.assetCategory}
                       onValueChange={(value) =>
@@ -324,7 +362,10 @@ export function MaintenanceDialog({
                       }
                       required
                     >
-                      <SelectTrigger id="assetCategory" className="h-10 transition-all border-muted-foreground/20 focus:ring-2 focus:ring-sky-500/20 bg-background/50">
+                      <SelectTrigger
+                        id="assetCategory"
+                        className="h-10 transition-all border-muted-foreground/20 focus:ring-2 focus:ring-sky-500/20 bg-background/50"
+                      >
                         <SelectValue placeholder="Select" />
                       </SelectTrigger>
                       <SelectContent>
@@ -369,7 +410,12 @@ export function MaintenanceDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="assetMake" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Make</Label>
+                    <Label
+                      htmlFor="assetMake"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Make
+                    </Label>
                     <Input
                       id="assetMake"
                       placeholder="e.g., Dell"
@@ -382,7 +428,12 @@ export function MaintenanceDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="assetModel" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Model</Label>
+                    <Label
+                      htmlFor="assetModel"
+                      className="text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    >
+                      Model
+                    </Label>
                     <Input
                       id="assetModel"
                       placeholder="e.g., Vostro 3520"
@@ -400,12 +451,16 @@ export function MaintenanceDialog({
               <div className="space-y-6">
                 <div className="flex items-center gap-2 mb-2 pb-2 border-b">
                   <IconAlertCircle className="h-4 w-4 text-orange-500" />
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Maintenance Details</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+                    Maintenance Details
+                  </h3>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="issue" className="text-sm font-semibold">Issue Summary *</Label>
+                    <Label htmlFor="issue" className="text-sm font-semibold">
+                      Issue Summary *
+                    </Label>
                     <Input
                       id="issue"
                       placeholder="e.g., Screen flickering after 10 minutes"
@@ -419,13 +474,21 @@ export function MaintenanceDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description" className="text-sm font-semibold">Detailed Description *</Label>
+                    <Label
+                      htmlFor="description"
+                      className="text-sm font-semibold"
+                    >
+                      Detailed Description *
+                    </Label>
                     <Textarea
                       id="description"
                       placeholder="Provide any additional context, symptoms, or steps to reproduce..."
                       value={formData.description}
                       onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
                       }
                       rows={4}
                       className="resize-none transition-all focus:ring-2 focus:ring-sky-500/20 text-sm leading-relaxed"
@@ -435,7 +498,12 @@ export function MaintenanceDialog({
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="category" className="text-sm font-semibold">Issue Category *</Label>
+                      <Label
+                        htmlFor="category"
+                        className="text-sm font-semibold"
+                      >
+                        Issue Category *
+                      </Label>
                       <Select
                         value={formData.category}
                         onValueChange={(value) =>
@@ -445,7 +513,10 @@ export function MaintenanceDialog({
                           })
                         }
                       >
-                        <SelectTrigger id="category" className="transition-all focus:ring-2 focus:ring-sky-500/20 h-10">
+                        <SelectTrigger
+                          id="category"
+                          className="transition-all focus:ring-2 focus:ring-sky-500/20 h-10"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -478,7 +549,12 @@ export function MaintenanceDialog({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="priority" className="text-sm font-semibold">Priority *</Label>
+                      <Label
+                        htmlFor="priority"
+                        className="text-sm font-semibold"
+                      >
+                        Priority *
+                      </Label>
                       <Select
                         value={formData.priority}
                         onValueChange={(value) =>
@@ -488,32 +564,49 @@ export function MaintenanceDialog({
                           })
                         }
                       >
-                        <SelectTrigger id="priority" className="transition-all focus:ring-2 focus:ring-sky-500/20 h-10">
+                        <SelectTrigger
+                          id="priority"
+                          className="transition-all focus:ring-2 focus:ring-sky-500/20 h-10"
+                        >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="critical">
                             <div className="flex items-center gap-2">
                               <IconAlertTriangle className="h-4 w-4 text-red-500" />
-                              <Badge variant="destructive" className="bg-red-500 hover:bg-red-600">CRITICAL</Badge>
+                              <Badge
+                                variant="destructive"
+                                className="bg-red-500 hover:bg-red-600"
+                              >
+                                CRITICAL
+                              </Badge>
                             </div>
                           </SelectItem>
                           <SelectItem value="high">
                             <div className="flex items-center gap-2">
                               <IconCircleCheck className="h-4 w-4 text-orange-500" />
-                              <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent">HIGH</Badge>
+                              <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent">
+                                HIGH
+                              </Badge>
                             </div>
                           </SelectItem>
                           <SelectItem value="medium">
                             <div className="flex items-center gap-2">
                               <IconCircleDot className="h-4 w-4 text-blue-500" />
-                              <Badge className="bg-blue-500 hover:bg-blue-600 text-white border-transparent">MEDIUM</Badge>
+                              <Badge className="bg-blue-500 hover:bg-blue-600 text-white border-transparent">
+                                MEDIUM
+                              </Badge>
                             </div>
                           </SelectItem>
                           <SelectItem value="low">
                             <div className="flex items-center gap-2">
                               <IconCircle className="h-4 w-4 text-muted-foreground" />
-                              <Badge variant="outline" className="text-muted-foreground border-muted-foreground">LOW</Badge>
+                              <Badge
+                                variant="outline"
+                                className="text-muted-foreground border-muted-foreground"
+                              >
+                                LOW
+                              </Badge>
                             </div>
                           </SelectItem>
                         </SelectContent>
@@ -523,7 +616,12 @@ export function MaintenanceDialog({
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="technician" className="text-sm font-semibold">Assign Technician</Label>
+                      <Label
+                        htmlFor="technician"
+                        className="text-sm font-semibold"
+                      >
+                        Assign Technician
+                      </Label>
                       <div className="relative">
                         <IconUser className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -531,7 +629,10 @@ export function MaintenanceDialog({
                           placeholder="Technician name"
                           value={formData.technician}
                           onChange={(e) =>
-                            setFormData({ ...formData, technician: e.target.value })
+                            setFormData({
+                              ...formData,
+                              technician: e.target.value,
+                            })
                           }
                           className="pl-9 transition-all focus:ring-2 focus:ring-sky-500/20 h-10"
                         />
@@ -539,7 +640,12 @@ export function MaintenanceDialog({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="scheduledDate" className="text-sm font-semibold">Scheduled Date</Label>
+                      <Label
+                        htmlFor="scheduledDate"
+                        className="text-sm font-semibold"
+                      >
+                        Scheduled Date
+                      </Label>
                       <div className="relative">
                         <IconCalendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -547,7 +653,10 @@ export function MaintenanceDialog({
                           type="date"
                           value={formData.scheduledDate}
                           onChange={(e) =>
-                            setFormData({ ...formData, scheduledDate: e.target.value })
+                            setFormData({
+                              ...formData,
+                              scheduledDate: e.target.value,
+                            })
                           }
                           className="pl-9 transition-all focus:ring-2 focus:ring-sky-500/20 h-10"
                         />
@@ -556,7 +665,12 @@ export function MaintenanceDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="estimatedCost" className="text-sm font-semibold">Estimated Cost</Label>
+                    <Label
+                      htmlFor="estimatedCost"
+                      className="text-sm font-semibold"
+                    >
+                      Estimated Cost
+                    </Label>
                     <div className="relative">
                       <IconCurrencyDollar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                       <Input
@@ -566,7 +680,10 @@ export function MaintenanceDialog({
                         placeholder="0.00"
                         value={formData.estimatedCost}
                         onChange={(e) =>
-                          setFormData({ ...formData, estimatedCost: e.target.value })
+                          setFormData({
+                            ...formData,
+                            estimatedCost: e.target.value,
+                          })
                         }
                         className="pl-9 transition-all focus:ring-2 focus:ring-sky-500/20 h-10 font-mono"
                       />
@@ -580,7 +697,9 @@ export function MaintenanceDialog({
                 <div className="space-y-4 rounded-2xl bg-muted/20 p-6 border border-border/50 shadow-inner">
                   <div className="flex items-center gap-2 mb-2">
                     <IconHistory className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">Asset History</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+                      Asset History
+                    </h3>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
@@ -596,15 +715,23 @@ export function MaintenanceDialog({
                               alt={owner.name}
                             />
                             <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                              {owner.name.split(',').map(n => n.trim()[0]).join('')}
+                              {owner.name
+                                .split(",")
+                                .map((n) => n.trim()[0])
+                                .join("")}
                             </AvatarFallback>
                           </Avatar>
                           <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-background rounded-full" />
                         </div>
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-base font-bold truncate tracking-tight text-foreground/90">{owner.name}</span>
+                          <span className="text-base font-bold truncate tracking-tight text-foreground/90">
+                            {owner.name}
+                          </span>
                           <div className="flex items-center gap-3 pt-0.5">
-                            <Badge variant="outline" className="h-5 px-2 text-[10px] font-bold uppercase tracking-tighter bg-muted/50 border-muted-foreground/20">
+                            <Badge
+                              variant="outline"
+                              className="h-5 px-2 text-[10px] font-bold uppercase tracking-tighter bg-muted/50 border-muted-foreground/20"
+                            >
                               {owner.role}
                             </Badge>
                             <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
@@ -622,7 +749,7 @@ export function MaintenanceDialog({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Footer */}
           <div className="p-6 bg-muted/30 border-t backdrop-blur-md">
@@ -641,7 +768,9 @@ export function MaintenanceDialog({
                 disabled={loading || searching}
                 className="flex-1 sm:flex-none px-10 font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-lg shadow-sky-500/20 hover:scale-[1.02] transition-all active:scale-[0.98] h-11 border-none"
               >
-                {loading && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading && (
+                  <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Create Request
               </Button>
             </SheetFooter>

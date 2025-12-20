@@ -1,134 +1,208 @@
-import type { MaintenanceRecord, WarrantyInfo } from "@/lib/maintenance-types";
+import type { 
+  MaintenanceRecord, 
+  MaintenanceTimelineEvent, 
+  MaintenanceComment, 
+  MaintenanceStatus 
+} from "@/lib/maintenance-types";
+import initialMaintenanceData from "@/data/maintenance.json";
 
-// Mock data for development - replace with actual API calls
-const mockMaintenanceRecords: MaintenanceRecord[] = [
-  {
-    id: "MNT-001",
-    assetTag: "F3XVC24",
-    assetCategory: "Laptop",
-    assetMake: "Dell",
-    assetModel: "Vostro 3520",
-    issue: "Screen flickering",
-    description: "Display shows intermittent flickering, especially when on battery power",
-    category: "hardware",
-    status: "in-progress",
-    priority: "high",
-    technician: "Alex Doe",
-    reportedBy: "Abdullah, Laila",
-    reportedDate: "2024-12-15",
-    scheduledDate: "2024-12-16",
-    estimatedCost: 150,
-    notes: ["Initial diagnosis: possible GPU issue", "Ordered replacement screen"],
-  },
-  {
-    id: "MNT-002",
-    assetTag: "CFNVC24",
-    assetCategory: "Laptop",
-    assetMake: "Dell",
-    assetModel: "Vostro 3520",
-    issue: "Keyboard replacement",
-    description: "Several keys not responding properly",
-    category: "hardware",
-    status: "completed",
-    priority: "medium",
-    technician: "Jane Smith",
-    reportedBy: "Abu Al Rous, Mohammed",
-    reportedDate: "2024-12-10",
-    scheduledDate: "2024-12-12",
-    completedDate: "2024-12-12",
-    estimatedCost: 80,
-    actualCost: 75,
-    notes: ["Keyboard replaced successfully", "Tested all keys - working properly"],
-  },
-  {
-    id: "MNT-003",
-    assetTag: "JHV69T3",
-    assetCategory: "Laptop",
-    assetMake: "Dell",
-    assetModel: "Vostro 3510",
-    issue: "OS Update failure",
-    description: "Windows update keeps failing with error code 0x80070002",
-    category: "software",
-    status: "pending",
-    priority: "low",
-    reportedBy: "Abu Ghalyoun, Hasan",
-    reportedDate: "2024-12-14",
-    notes: ["Awaiting technician assignment"],
-  },
-];
+// Key for storage
+const STORAGE_KEY = "it_inventory_maintenance_data";
+
+// Helper to get simulated user (in a real app, this would come from auth context)
+const CURRENT_USER = "Admin User"; 
+
+/**
+ * Initialize data from local storage or seed with JSON file
+ */
+function getStoredData(): MaintenanceRecord[] {
+  if (typeof window === "undefined") return initialMaintenanceData as MaintenanceRecord[];
+  
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    // Seed and save
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMaintenanceData));
+    return initialMaintenanceData as MaintenanceRecord[];
+  }
+  
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    console.error("Failed to parse maintenance data", e);
+    return initialMaintenanceData as MaintenanceRecord[];
+  }
+}
+
+/**
+ * Save data to local storage
+ */
+function saveData(data: MaintenanceRecord[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+}
+
+// SIMULATED DELAY FOR REALISM
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function getMaintenanceRecords(): Promise<MaintenanceRecord[]> {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(mockMaintenanceRecords), 100);
-  });
+  await delay(100);
+  return getStoredData();
 }
 
 export async function getMaintenanceRecordById(id: string): Promise<MaintenanceRecord | null> {
-  const records = await getMaintenanceRecords();
+  await delay(50);
+  const records = getStoredData();
   return records.find((record) => record.id === id) || null;
 }
 
 export async function createMaintenanceRequest(
-  data: Omit<MaintenanceRecord, "id" | "reportedDate" | "notes">
+  data: Omit<MaintenanceRecord, "id" | "reportedDate" | "notes" | "timeline" | "comments">
 ): Promise<MaintenanceRecord> {
+  await delay(500);
+  const records = getStoredData();
+  
+  const newId = `MNT-${String(records.length + 1).padStart(3, "0")}`;
+  const now = new Date().toISOString();
+  
   const newRecord: MaintenanceRecord = {
     ...data,
-    id: `MNT-${String(mockMaintenanceRecords.length + 1).padStart(3, "0")}`,
-    reportedDate: new Date().toISOString().split("T")[0],
+    id: newId,
+    reportedDate: now.split("T")[0], // YYYY-MM-DD
     notes: [],
+    comments: [],
+    timeline: [
+      {
+        id: crypto.randomUUID(),
+        type: "creation",
+        title: "Ticket Created",
+        description: `Ticket created by ${data.reportedBy}`,
+        timestamp: now,
+        user: CURRENT_USER 
+      }
+    ]
   };
 
-  mockMaintenanceRecords.push(newRecord);
+  records.push(newRecord);
+  saveData(records);
   return newRecord;
 }
 
 export async function updateMaintenanceStatus(
   id: string,
-  status: MaintenanceRecord["status"],
+  status: MaintenanceStatus,
   note?: string
 ): Promise<MaintenanceRecord | null> {
-  const record = await getMaintenanceRecordById(id);
-  if (!record) return null;
+  await delay(300);
+  const records = getStoredData();
+  const index = records.findIndex(r => r.id === id);
+  
+  if (index === -1) return null;
+  
+  const record = records[index];
+  const oldStatus = record.status;
+  const now = new Date().toISOString();
 
+  // Update Status
   record.status = status;
+  
+  // Add Note if exists (Legacy support)
   if (note) {
-    record.notes.push(`${new Date().toISOString().split("T")[0]}: ${note}`);
-  }
-  if (status === "completed" && !record.completedDate) {
-    record.completedDate = new Date().toISOString().split("T")[0];
+    record.notes.push(`${now.split("T")[0]}: ${note}`);
   }
 
+  // Update Completed Date
+  if (status === "completed" && !record.completedDate) {
+    record.completedDate = now.split("T")[0];
+  }
+
+  // Add Timeline Event
+  record.timeline.unshift({
+    id: crypto.randomUUID(),
+    type: "status_change",
+    title: "Status Updated",
+    description: `Status changed from ${oldStatus} to ${status}`,
+    timestamp: now,
+    user: CURRENT_USER
+  });
+
+  // Save
+  records[index] = record;
+  saveData(records);
+  
   return record;
+}
+
+export async function addMaintenanceComment(
+  id: string,
+  content: string,
+  isInternal: boolean = false
+): Promise<MaintenanceComment | null> {
+  await delay(200);
+  const records = getStoredData();
+  const index = records.findIndex(r => r.id === id);
+  
+  if (index === -1) return null;
+  
+  const now = new Date().toISOString();
+  const newComment: MaintenanceComment = {
+    id: crypto.randomUUID(),
+    content,
+    author: CURRENT_USER,
+    timestamp: now,
+    isInternal
+  };
+
+  records[index].comments.unshift(newComment);
+  
+  // Add Timeline Event for internal visibility primarily
+  records[index].timeline.unshift({
+    id: crypto.randomUUID(),
+    type: "comment",
+    title: "Comment Added",
+    description: isInternal ? "Internal note added" : "Public comment added",
+    timestamp: now,
+    user: CURRENT_USER
+  });
+
+  saveData(records);
+  return newComment;
 }
 
 export async function updateMaintenanceRecord(
   id: string,
   updates: Partial<MaintenanceRecord>
 ): Promise<MaintenanceRecord | null> {
-  const record = await getMaintenanceRecordById(id);
-  if (!record) return null;
+  await delay(300);
+  const records = getStoredData();
+  const index = records.findIndex(r => r.id === id);
+  if (index === -1) return null;
 
-  // Handle status update specifically for notes/date
-  if (updates.status) {
-    if (updates.status === "completed" && !record.completedDate) {
-      record.completedDate = new Date().toISOString().split("T")[0];
-    }
+  const record = records[index];
+  
+  // Merge updates
+  const updatedRecord = { ...record, ...updates };
+  
+  // Detect significant changes for timeline (simple version)
+  if (updates.technician && updates.technician !== record.technician) {
+    updatedRecord.timeline.unshift({
+      id: crypto.randomUUID(),
+      type: "assignment",
+      title: "Technician Assigned",
+      description: `Assigned to ${updates.technician}`,
+      timestamp: new Date().toISOString(),
+      user: CURRENT_USER
+    });
   }
 
-  Object.assign(record, updates);
-  return record;
+  records[index] = updatedRecord;
+  saveData(records);
+  return updatedRecord;
 }
 
 export async function getAssetMaintenanceHistory(assetTag: string): Promise<MaintenanceRecord[]> {
   const records = await getMaintenanceRecords();
   return records.filter((record) => record.assetTag === assetTag);
-}
-
-export async function getWarrantyExpirations(): Promise<WarrantyInfo[]> {
-  // This would typically fetch from the inventory data
-  // For now, return mock data
-  return [];
 }
 
 export async function exportMaintenanceReport(

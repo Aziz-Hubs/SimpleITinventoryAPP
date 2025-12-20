@@ -16,13 +16,22 @@ export interface Employee {
     position: string;
 }
 
+
+// Define the shape of the raw inventory JSON data
+interface InventoryItem {
+    category: string;
+    state: string;
+    employee: string;
+    [key: string]: unknown;
+}
+
 /**
  * Extract unique employees from inventory data
  */
 function extractEmployeesFromInventory(): Employee[] {
     const uniqueNames = new Set<string>();
 
-    (inventoryData as any[]).forEach(item => {
+    (inventoryData as InventoryItem[]).forEach(item => {
         if (item.employee && item.employee !== 'UNASSIGNED') {
             uniqueNames.add(item.employee);
         }
@@ -55,6 +64,7 @@ function extractEmployeesFromInventory(): Employee[] {
 }
 
 const MOCK_EMPLOYEES: Employee[] = extractEmployeesFromInventory();
+
 
 /**
  * Get all employees

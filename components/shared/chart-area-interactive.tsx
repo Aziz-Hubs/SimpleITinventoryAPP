@@ -37,15 +37,15 @@ const chartConfig = {
   },
   laptop: {
     label: "Laptop Changes",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
   monitor: {
     label: "Monitor Changes",
-    color: "hsl(var(--chart-2))",
+    color: "var(--chart-2)",
   },
   peripheral: {
     label: "Peripherals Changes",
-    color: "hsl(var(--chart-3))",
+    color: "var(--chart-3)",
   },
 } satisfies ChartConfig;
 

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,36 +21,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Laptop,
-  Monitor,
-  Usb,
-  Headphones,
-  Server,
-  Printer,
-  Wifi,
-  PackagePlus,
-  Rocket,
-  ShieldCheck,
-  Check,
-  ChevronsUpDown,
-} from "lucide-react";
+  IconLoader2,
+  IconPackage,
+  IconTag,
+  IconBox,
+  IconSettings,
+  IconDeviceLaptop,
+  IconDeviceTv,
+  IconUsb,
+  IconHeadphones,
+  IconWifi,
+  IconPrinter,
+  IconServer,
+  IconCpu,
+  IconDatabase,
+  IconScreenShare,
+  IconCalendar,
+  IconMapPin,
+  IconMessageCircle,
+  IconShieldCheck,
+  IconCategory,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { searchAssets } from "@/services/inventory-service";
-import { Asset } from "@/lib/types";
+import { ASSET_CATEGORIES, ASSET_STATES, ASSET_LOCATIONS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface AddAssetDialogProps {
@@ -59,63 +54,32 @@ interface AddAssetDialogProps {
 
 export function AddAssetDialog({ open, onOpenChange }: AddAssetDialogProps) {
   const [loading, setLoading] = React.useState(false);
-  const [make, setMake] = React.useState("");
-  const [model, setModel] = React.useState("");
-  const [serviceTag, setServiceTag] = React.useState("");
-  const [category, setCategory] = React.useState("Laptop");
-  const [status, setStatus] = React.useState("NEW");
 
-  // Autocomplete states
-  const [makeOpen, setMakeOpen] = React.useState(false);
-  const [modelOpen, setModelOpen] = React.useState(false);
-  const [tagOpen, setTagOpen] = React.useState(false);
-  const [makeSuggestions, setMakeSuggestions] = React.useState<string[]>([]);
-  const [modelSuggestions, setModelSuggestions] = React.useState<string[]>([]);
-  const [tagSuggestions, setTagSuggestions] = React.useState<Asset[]>([]);
+  // Unified form state matching the schema
+  const [formData, setFormData] = React.useState({
+    category: "Laptop",
+    state: "NEW",
+    make: "",
+    model: "",
+    servicetag: "",
+    warrantyexpiry: "",
+    location: "Office",
+    cpu: "",
+    ram: "",
+    storage: "",
+    dedicatedgpu: "",
+    "usb-aports": "",
+    "usb-cports": "",
+    dimensions: "",
+    resolution: "",
+    refreshhertz: "",
+    additionalcomments: "",
+    employee: "UNASSIGNED",
+  });
 
-  // Fetch make suggestions
-  React.useEffect(() => {
-    const fetchMakes = async () => {
-      if (make.length >= 2) {
-        const results = await searchAssets(make);
-        const uniqueMakes = Array.from(new Set(results.map(r => r.make).filter(Boolean)));
-        setMakeSuggestions(uniqueMakes.slice(0, 5));
-      } else {
-        setMakeSuggestions([]);
-      }
-    };
-    const timer = setTimeout(fetchMakes, 300);
-    return () => clearTimeout(timer);
-  }, [make]);
-
-  // Fetch model suggestions
-  React.useEffect(() => {
-    const fetchModels = async () => {
-      if (model.length >= 2) {
-        const results = await searchAssets(model);
-        const uniqueModels = Array.from(new Set(results.map(r => r.model).filter(Boolean)));
-        setModelSuggestions(uniqueModels.slice(0, 5));
-      } else {
-        setModelSuggestions([]);
-      }
-    };
-    const timer = setTimeout(fetchModels, 300);
-    return () => clearTimeout(timer);
-  }, [model]);
-
-  // Fetch service tag suggestions
-  React.useEffect(() => {
-    const fetchTags = async () => {
-      if (serviceTag.length >= 2) {
-        const results = await searchAssets(serviceTag);
-        setTagSuggestions(results.slice(0, 5));
-      } else {
-        setTagSuggestions([]);
-      }
-    };
-    const timer = setTimeout(fetchTags, 300);
-    return () => clearTimeout(timer);
-  }, [serviceTag]);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,278 +91,554 @@ export function AddAssetDialog({ open, onOpenChange }: AddAssetDialogProps) {
       toast.success("Asset added successfully", {
         description: "The new asset is now available in the inventory.",
       });
+      // Reset form on success
+      setFormData({
+        category: "Laptop",
+        state: "NEW",
+        make: "",
+        model: "",
+        servicetag: "",
+        warrantyexpiry: "",
+        location: "Office",
+        cpu: "",
+        ram: "",
+        storage: "",
+        dedicatedgpu: "",
+        "usb-aports": "",
+        "usb-cports": "",
+        dimensions: "",
+        resolution: "",
+        refreshhertz: "",
+        additionalcomments: "",
+        employee: "UNASSIGNED",
+      });
       onOpenChange(false);
-    }, 1000);
+    }, 1500);
+  };
+
+  const renderSpecsFields = () => {
+    const { category } = formData;
+
+    if (category === "Laptop" || category === "Desktop") {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+            <IconSettings className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+              Technical Specifications
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label
+                htmlFor="cpu"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                CPU
+              </Label>
+              <div className="relative">
+                <IconCpu className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  id="cpu"
+                  placeholder="e.g. Core i7-12700H"
+                  className="pl-9 bg-background/50"
+                  value={formData.cpu}
+                  onChange={(e) => handleInputChange("cpu", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="ram"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                RAM
+              </Label>
+              <div className="relative">
+                <IconCpu className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  id="ram"
+                  placeholder="e.g. 16GB DDR4"
+                  className="pl-9 bg-background/50"
+                  value={formData.ram}
+                  onChange={(e) => handleInputChange("ram", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="storage"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                Storage
+              </Label>
+              <div className="relative">
+                <IconDatabase className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  id="storage"
+                  placeholder="e.g. 512GB NVMe"
+                  className="pl-9 bg-background/50"
+                  value={formData.storage}
+                  onChange={(e) => handleInputChange("storage", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="gpu"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                Dedicated GPU
+              </Label>
+              <div className="relative">
+                <IconScreenShare className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  id="gpu"
+                  placeholder="e.g. RTX 3050"
+                  className="pl-9 bg-background/50"
+                  value={formData.dedicatedgpu}
+                  onChange={(e) =>
+                    handleInputChange("dedicatedgpu", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (category === "Monitor" || category === "TV") {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+            <IconScreenShare className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+              Display Specifications
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label
+                htmlFor="dimensions"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                Dimensions
+              </Label>
+              <Input
+                id="dimensions"
+                placeholder="e.g. 27 inch"
+                className="bg-background/50"
+                value={formData.dimensions}
+                onChange={(e) =>
+                  handleInputChange("dimensions", e.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="resolution"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                Resolution
+              </Label>
+              <Input
+                id="resolution"
+                placeholder="e.g. 2560x1440"
+                className="bg-background/50"
+                value={formData.resolution}
+                onChange={(e) =>
+                  handleInputChange("resolution", e.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="refresh"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                Refresh Rate (Hz)
+              </Label>
+              <Input
+                id="refresh"
+                placeholder="e.g. 144"
+                className="bg-background/50"
+                value={formData.refreshhertz}
+                onChange={(e) =>
+                  handleInputChange("refreshhertz", e.target.value)
+                }
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (category === "Docking") {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+            <IconUsb className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+              Port Connectivity
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label
+                htmlFor="usb-a"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                USB-A Ports
+              </Label>
+              <Input
+                id="usb-a"
+                placeholder="e.g. 3x USB 3.0"
+                className="bg-background/50"
+                value={formData["usb-aports"]}
+                onChange={(e) =>
+                  handleInputChange("usb-aports", e.target.value)
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="usb-c"
+                className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+              >
+                USB-C Ports
+              </Label>
+              <Input
+                id="usb-c"
+                placeholder="e.g. 1x PD, 1x Data"
+                className="bg-background/50"
+                value={formData["usb-cports"]}
+                onChange={(e) =>
+                  handleInputChange("usb-cports", e.target.value)
+                }
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const getCategoryIcon = (cat: string) => {
+    switch (cat) {
+      case "Laptop":
+        return <IconDeviceLaptop className="h-4 w-4" />;
+      case "Monitor":
+        return <IconDeviceTv className="h-4 w-4" />;
+      case "TV":
+        return <IconDeviceTv className="h-4 w-4" />;
+      case "Docking":
+        return <IconUsb className="h-4 w-4" />;
+      case "Headset":
+        return <IconHeadphones className="h-4 w-4" />;
+      case "Network":
+      case "Network Switch":
+      case "Firewall":
+      case "Access Point":
+        return <IconWifi className="h-4 w-4" />;
+      case "Printer":
+        return <IconPrinter className="h-4 w-4" />;
+      case "Desktop":
+        return <IconServer className="h-4 w-4" />;
+      default:
+        return <IconBox className="h-4 w-4" />;
+    }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-[500px] p-0 flex flex-col">
-        <SheetHeader className="p-6 border-b bg-muted/30">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shadow-sm">
-              <PackagePlus className="h-6 w-6" />
-            </div>
-            <div>
-              <SheetTitle className="text-xl">Add New Asset</SheetTitle>
-              <SheetDescription>
-                Register a new device into the inventory system.
-              </SheetDescription>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl overflow-hidden"
+      >
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col h-full bg-background"
+        >
+          {/* Header */}
+          <div className="p-6 bg-linear-to-br from-primary/10 via-background to-background border-b">
+            <SheetHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2.5 rounded-xl bg-primary/10 shadow-sm border border-primary/20">
+                  <IconPackage className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <SheetTitle className="text-2xl font-bold tracking-tight">
+                    Add New Asset
+                  </SheetTitle>
+                  <SheetDescription className="text-muted-foreground">
+                    Register a new device into the inventory system.
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6 space-y-8 pb-10">
+              {/* Item Information Card */}
+              <div className="space-y-5 rounded-2xl border bg-card/40 p-6 shadow-sm backdrop-blur-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <IconTag className="h-12 w-12" />
+                </div>
+
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+                  <IconCategory className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+                    Basic Information
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="category"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Category *
+                    </Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(v) => handleInputChange("category", v)}
+                      required
+                    >
+                      <SelectTrigger
+                        id="category"
+                        className="h-10 bg-background/50 border-muted-foreground/20"
+                      >
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSET_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            <div className="flex items-center gap-2">
+                              {getCategoryIcon(cat)}
+                              <span>{cat}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="state"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Initial Status *
+                    </Label>
+                    <Select
+                      value={formData.state}
+                      onValueChange={(v) => handleInputChange("state", v)}
+                      required
+                    >
+                      <SelectTrigger
+                        id="state"
+                        className="h-10 bg-background/50 border-muted-foreground/20"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSET_STATES.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            <div className="flex items-center gap-2">
+                              {state === "NEW" && (
+                                <IconShieldCheck className="h-4 w-4 text-sky-500" />
+                              )}
+                              {state === "GOOD" && (
+                                <IconShieldCheck className="h-4 w-4 text-emerald-500" />
+                              )}
+                              <span>{state}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="make"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Make *
+                    </Label>
+                    <Input
+                      id="make"
+                      placeholder="e.g. Dell"
+                      className="h-10 bg-background/50 border-muted-foreground/20"
+                      value={formData.make}
+                      onChange={(e) =>
+                        handleInputChange("make", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="model"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Model *
+                    </Label>
+                    <Input
+                      id="model"
+                      placeholder="e.g. Vostro 3520"
+                      className="h-10 bg-background/50 border-muted-foreground/20"
+                      value={formData.model}
+                      onChange={(e) =>
+                        handleInputChange("model", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2 col-span-full">
+                    <Label
+                      htmlFor="servicetag"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Service Tag / Serial *
+                    </Label>
+                    <div className="relative">
+                      <IconTag className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+                      <Input
+                        id="servicetag"
+                        placeholder="e.g. ABC1234"
+                        className="pl-9 h-10 font-mono bg-background/50 border-muted-foreground/20"
+                        value={formData.servicetag}
+                        onChange={(e) =>
+                          handleInputChange("servicetag", e.target.value)
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Specs Section */}
+              {renderSpecsFields()}
+
+              {/* Additional Details Card */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+                  <IconSettings className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
+                    Additional Details
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="warranty"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Warranty Expiry
+                    </Label>
+                    <div className="relative">
+                      <IconCalendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+                      <Input
+                        id="warranty"
+                        type="date"
+                        className="pl-9 h-10 bg-background/50"
+                        value={formData.warrantyexpiry}
+                        onChange={(e) =>
+                          handleInputChange("warrantyexpiry", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="location"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Current Location *
+                    </Label>
+                    <Select
+                      value={formData.location}
+                      onValueChange={(v) => handleInputChange("location", v)}
+                    >
+                      <SelectTrigger
+                        id="location"
+                        className="h-10 bg-background/50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <IconMapPin className="h-4 w-4 text-muted-foreground" />
+                          <SelectValue />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASSET_LOCATIONS.map((loc) => (
+                          <SelectItem key={loc} value={loc}>
+                            {loc}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="comments"
+                    className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Additional Comments
+                  </Label>
+                  <div className="relative">
+                    <IconMessageCircle className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+                    <Textarea
+                      id="comments"
+                      placeholder="Enter any additional notes..."
+                      className="pl-9 min-h-[100px] resize-none bg-background/50"
+                      value={formData.additionalcomments}
+                      onChange={(e) =>
+                        handleInputChange("additionalcomments", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col h-full overflow-hidden">
-          <ScrollArea className="flex-1">
-            <div className="p-6 space-y-8">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="make" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Make</Label>
-                  <Popover open={makeOpen} onOpenChange={setMakeOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={makeOpen}
-                        className="h-10 justify-between font-normal"
-                      >
-                        {make || "e.g. Dell"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0" align="start">
-                      <Command shouldFilter={false}>
-                        <CommandInput
-                          placeholder="Type make..."
-                          value={make}
-                          onValueChange={setMake}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No suggestions</CommandEmpty>
-                          {makeSuggestions.length > 0 && (
-                            <CommandGroup>
-                              {makeSuggestions.map((suggestion) => (
-                                <CommandItem
-                                  key={suggestion}
-                                  value={suggestion}
-                                  onSelect={() => {
-                                    setMake(suggestion);
-                                    setMakeOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      make === suggestion ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {suggestion}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="model" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Model</Label>
-                  <Popover open={modelOpen} onOpenChange={setModelOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={modelOpen}
-                        className="h-10 justify-between font-normal"
-                      >
-                        {model || "e.g. Latitude 5420"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0" align="start">
-                      <Command shouldFilter={false}>
-                        <CommandInput
-                          placeholder="Type model..."
-                          value={model}
-                          onValueChange={setModel}
-                        />
-                        <CommandList>
-                          <CommandEmpty>No suggestions</CommandEmpty>
-                          {modelSuggestions.length > 0 && (
-                            <CommandGroup>
-                              {modelSuggestions.map((suggestion) => (
-                                <CommandItem
-                                  key={suggestion}
-                                  value={suggestion}
-                                  onSelect={() => {
-                                    setModel(suggestion);
-                                    setModelOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      model === suggestion ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {suggestion}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="tag" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Service Tag / Serial</Label>
-                <Popover open={tagOpen} onOpenChange={setTagOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={tagOpen}
-                      className="h-10 justify-between font-mono font-normal"
-                    >
-                      {serviceTag || "e.g. 8H2J9K2"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start">
-                    <Command shouldFilter={false}>
-                      <CommandInput
-                        placeholder="Type service tag..."
-                        value={serviceTag}
-                        onValueChange={setServiceTag}
-                        className="font-mono"
-                      />
-                      <CommandList>
-                        <CommandEmpty>No matching tags</CommandEmpty>
-                        {tagSuggestions.length > 0 && (
-                          <CommandGroup>
-                            {tagSuggestions.map((asset) => (
-                              <CommandItem
-                                key={asset.id}
-                                value={asset.servicetag}
-                                onSelect={() => {
-                                  setServiceTag(asset.servicetag);
-                                  setMake(asset.make);
-                                  setModel(asset.model);
-                                  setCategory(asset.category);
-                                  setTagOpen(false);
-                                }}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-mono font-bold">{asset.servicetag}</span>
-                                  <span className="text-xs text-muted-foreground">{asset.make} {asset.model}</span>
-                                </div>
-                                <Check
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    serviceTag === asset.servicetag ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        )}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
-                  <Select value={category} onValueChange={setCategory} required>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Laptop">
-                        <div className="flex items-center gap-2">
-                          <Laptop className="h-4 w-4" />
-                          <span>Laptop</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Desktop">
-                        <div className="flex items-center gap-2">
-                          <Server className="h-4 w-4" />
-                          <span>Desktop</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Monitor">
-                        <div className="flex items-center gap-2">
-                          <Monitor className="h-4 w-4" />
-                          <span>Monitor</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Docking">
-                        <div className="flex items-center gap-2">
-                          <Usb className="h-4 w-4" />
-                          <span>Docking</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Headset">
-                        <div className="flex items-center gap-2">
-                          <Headphones className="h-4 w-4" />
-                          <span>Headset</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Network">
-                        <div className="flex items-center gap-2">
-                          <Wifi className="h-4 w-4" />
-                          <span>Network</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Printer">
-                        <div className="flex items-center gap-2">
-                          <Printer className="h-4 w-4" />
-                          <span>Printer</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="status" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Initial Status</Label>
-                  <Select value={status} onValueChange={setStatus} required>
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NEW">
-                        <div className="flex items-center gap-2 text-blue-500 font-medium">
-                          <Rocket className="h-4 w-4" />
-                          <span>New</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="GOOD">
-                        <div className="flex items-center gap-2 text-emerald-500 font-medium">
-                          <ShieldCheck className="h-4 w-4" />
-                          <span>Good (Used)</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
-
-          <SheetFooter className="p-6 border-t bg-muted/10 items-center justify-end gap-3 flex-row">
-            <Button variant="outline" type="button" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1 sm:flex-none px-8">
-              {loading ? "Adding..." : "Add Asset"}
-            </Button>
-          </SheetFooter>
+          {/* Footer */}
+          <div className="p-6 bg-muted/30 border-t backdrop-blur-md">
+            <SheetFooter className="items-center justify-end gap-3 flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+                className="flex-1 sm:flex-none px-8 font-semibold hover:bg-background h-11"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="flex-1 sm:flex-none px-10 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all active:scale-[0.98] h-11 border-none"
+              >
+                {loading && (
+                  <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {loading ? "Adding..." : "Add Asset"}
+              </Button>
+            </SheetFooter>
+          </div>
         </form>
       </SheetContent>
     </Sheet>

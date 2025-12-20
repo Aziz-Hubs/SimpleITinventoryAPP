@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
-
 interface EditItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,7 +48,9 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
     null
   );
   const [assets, setAssets] = React.useState<AssetLegacy[]>(MOCK_ASSETS);
-  const [originalAsset, setOriginalAsset] = React.useState<AssetLegacy | null>(null);
+  const [originalAsset, setOriginalAsset] = React.useState<AssetLegacy | null>(
+    null
+  );
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = React.useState(false);
 
@@ -147,20 +148,24 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
         <DialogContent className="w-full sm:max-w-xl p-0 flex flex-col border-none shadow-none bg-transparent gap-0 max-h-[85vh] overflow-hidden">
           <div
             className="relative flex-1 w-full flex flex-col overflow-hidden rounded-lg border border-white/10"
-            style={{
-              "--spread": "90deg",
-              "--shimmer-color": "#ffffff",
-              "--shimmer-radius": "0.5rem",
-              "--speed": "3s",
-              "--cut": "0.1em",
-              "--bg": "hsl(var(--background))",
-            } as React.CSSProperties}
+            style={
+              {
+                "--spread": "90deg",
+                "--shimmer-color": "#ffffff",
+                "--shimmer-radius": "0.5rem",
+                "--speed": "3s",
+                "--cut": "0.1em",
+                "--bg": "hsl(var(--background))",
+              } as React.CSSProperties
+            }
           >
             {/* Shimmer spark container */}
-            <div className={cn(
-              "-z-30 blur-[2px]",
-              "[container-type:size] absolute inset-0 overflow-visible"
-            )}>
+            <div
+              className={cn(
+                "-z-30 blur-[2px]",
+                "[container-type:size] absolute inset-0 overflow-visible"
+              )}
+            >
               {/* Shimmer spark */}
               <div className="animate-shimmer-slide absolute inset-0 [aspect-ratio:1] h-[100cqh] [border-radius:0] [mask:none]">
                 {/* Shimmer spark rotating gradient */}
@@ -260,7 +265,7 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
                     }}
                   >
                     <IconPlus className="h-4 w-4" />
-                    Didn't find what you need? Create new.
+                    Didn&apos;t find what you need? Create new.
                   </Button>
                 </div>
               </div>
@@ -329,7 +334,9 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
 
                       <form
                         id="asset-form"
-                        onSubmit={view === "edit" ? handleSaveClick : handleCreate} // NEW: Use handleSaveClick
+                        onSubmit={
+                          view === "edit" ? handleSaveClick : handleCreate
+                        } // NEW: Use handleSaveClick
                         className="space-y-6"
                       >
                         <div className="space-y-4">
@@ -449,7 +456,8 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
           </DialogHeader>
           <div className="py-4">
             <p className="text-muted-foreground">
-              Are you sure you want to delete this asset? This action cannot be undone.
+              Are you sure you want to delete this asset? This action cannot be
+              undone.
             </p>
           </div>
           <div className="flex justify-end gap-3">
@@ -459,10 +467,7 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-            >
+            <Button variant="destructive" onClick={confirmDelete}>
               Confirm Delete
             </Button>
           </div>
@@ -484,32 +489,30 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
                 getChanges().map((change, index) => (
                   <div key={index} className="flex gap-2">
                     <span className="font-bold">{change.key}:</span>
-                    <span className="text-red-500 line-through">{change.oldVal}</span>
+                    <span className="text-red-500 line-through">
+                      {change.oldVal}
+                    </span>
                     <span>→</span>
-                    <span className="text-green-500 font-medium">{change.newVal}</span>
+                    <span className="text-green-500 font-medium">
+                      {change.newVal}
+                    </span>
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground italic">No changes detected.</p>
+                <p className="text-muted-foreground italic">
+                  No changes detected.
+                </p>
               )}
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowSaveConfirm(false)}
-            >
+            <Button variant="outline" onClick={() => setShowSaveConfirm(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={confirmSave}
-            >
-              Confirm Save
-            </Button>
+            <Button onClick={confirmSave}>Confirm Save</Button>
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
 }
-

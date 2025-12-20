@@ -46,8 +46,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ActivityDetailsSheet } from "./activity-details-sheet";
-import { getActionCategory, getCategoryDetails } from "@/lib/activity-categories";
-
+import {
+  getActionCategory,
+  getCategoryDetails,
+} from "@/lib/activity-categories";
 
 interface ActivitiesLogProps {
   activities: Activity[];
@@ -81,7 +83,9 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null
+  );
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const itemsPerPage = 10;
 
@@ -176,157 +180,158 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header Area */}
-      {/* ... (Header content remains the same) */}
-      <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between px-4 lg:px-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Activities Log</h2>
-          <p className="text-muted-foreground">
-            Monitor system-wide activity and changes in real-time.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadCSV}
-            className="h-9"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={resetFilters}
-            className="h-9 w-9 text-muted-foreground hover:text-foreground"
-            title="Reset Filters"
-          >
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center px-4 lg:px-6">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search activity..."
-            className="h-9 w-full pl-9 md:w-[250px] lg:w-[350px]"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <Card className="flex flex-col border-none shadow-xl bg-background/50 backdrop-blur-xs">
+      <CardHeader className="border-b bg-muted/20 p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <CardTitle className="text-xl font-bold tracking-tight">
+              Activities Log
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground/80">
+              Monitor system-wide activity and changes in real-time.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadCSV}
+              className="h-8"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={resetFilters}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Reset Filters"
+            >
+              <RefreshCcw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-          <Select value={userFilter} onValueChange={setUserFilter}>
-            <SelectTrigger className="h-9 w-[140px] border-dashed">
-              <SelectValue placeholder="User" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span>All Users</span>
-                </div>
-              </SelectItem>
-              {uniqueUsers.map((user) => (
-                <SelectItem key={user} value={user}>
+        {/* Filters Toolbar */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search activity..."
+              className="h-9 w-full pl-9 md:w-[250px] lg:w-[350px] bg-background"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+            <Select value={userFilter} onValueChange={setUserFilter}>
+              <SelectTrigger className="h-9 w-auto min-w-[140px] border-dashed bg-background">
+                <SelectValue placeholder="User" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    <span>{user}</span>
+                    <span>All Users</span>
                   </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {uniqueUsers.map((user) => (
+                  <SelectItem key={user} value={user}>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>{user}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="h-9 w-[140px] border-dashed">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <span>All Categories</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="assignment">
-                <div className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  <span>Assignment</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="maintenance">
-                <div className="flex items-center gap-2">
-                  <Settings2 className="h-4 w-4" />
-                  <span>Maintenance</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="account">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span>Account</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="system">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <span>System</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="other">
-                <div className="flex items-center gap-2">
-                  <ActivityIcon className="h-4 w-4" />
-                  <span>Other</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-9 w-auto min-w-[140px] border-dashed bg-background">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>All Categories</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="assignment">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    <span>Assignment</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="maintenance">
+                  <div className="flex items-center gap-2">
+                    <Settings2 className="h-4 w-4" />
+                    <span>Maintenance</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="account">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>Account</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="system">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <span>System</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="other">
+                  <div className="flex items-center gap-2">
+                    <ActivityIcon className="h-4 w-4" />
+                    <span>Other</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="h-9 w-[140px] border-dashed">
-              <SelectValue placeholder="Date" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Anytime</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="today">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>Today</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="yesterday">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>Yesterday</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="last7">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>Last 7 Days</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="h-9 w-auto min-w-[140px] border-dashed bg-background">
+                <SelectValue placeholder="Date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>Anytime</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="today">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>Today</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="yesterday">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>Yesterday</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="last7">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>Last 7 Days</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Table Content */}
-      <div className="mx-4 lg:mx-6">
+      <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[200px]">
+            <TableRow className="hover:bg-transparent bg-muted/30">
+              <TableHead className="w-[200px] pl-6">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
                   User
@@ -344,7 +349,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                   Category
                 </div>
               </TableHead>
-              <TableHead className="text-right">
+              <TableHead className="text-right pr-6">
                 <div className="flex items-center justify-end gap-2">
                   <Clock className="h-4 w-4" />
                   Time
@@ -367,7 +372,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                       setIsSheetOpen(true);
                     }}
                   >
-                    <TableCell className="py-4">
+                    <TableCell className="py-4 pl-6">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8 border">
                           <AvatarImage
@@ -387,9 +392,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm font-normal text-foreground">
                           {activity.action}{" "}
-                          <span className="font-medium">
-                            {activity.target}
-                          </span>
+                          <span className="font-medium">{activity.target}</span>
                         </span>
                       </div>
                     </TableCell>
@@ -405,20 +408,17 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                         {details.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4 text-right">
+                    <TableCell className="py-4 text-right pr-6">
                       <div className="flex flex-col items-end gap-0.5">
                         <span className="text-sm text-foreground">
                           {formatRelativeTime(activity.timestamp)}
                         </span>
                         <span className="text-[10px] text-muted-foreground flex items-center">
                           <Clock className="mr-1 h-3 w-3" />
-                          {new Date(activity.timestamp).toLocaleTimeString(
-                            [],
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
+                          {new Date(activity.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
                     </TableCell>
@@ -447,10 +447,10 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
             )}
           </TableBody>
         </Table>
-      </div>
+      </CardContent>
 
       {/* Pagination Stats */}
-      <div className="flex items-center justify-between px-4 lg:px-6 py-4">
+      <div className="flex items-center justify-between p-4 border-t">
         <div className="flex-1 text-sm text-muted-foreground">
           Showing{" "}
           <span className="font-medium">
@@ -501,6 +501,6 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
       />
-    </div>
+    </Card>
   );
 }

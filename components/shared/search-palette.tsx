@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { IconBox, IconSearch, IconUser } from "@tabler/icons-react";
+import { IconBox, IconUser } from "@tabler/icons-react";
 
 import {
   CommandDialog,
