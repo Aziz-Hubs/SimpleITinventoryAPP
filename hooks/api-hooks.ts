@@ -1,8 +1,9 @@
 /**
- * React Hooks for API Integration
- * 
- * Custom hooks for data fetching with loading states, error handling,
- * and automatic retries.
+ * @file api-hooks.ts
+ * @description Provides a reusable set of React hooks for interacting with the service layer.
+ * Implements standard patterns for data fetching (queries) and state modification (mutations),
+ * including unified loading/error states and global toast notifications.
+ * @path /hooks/api-hooks.ts
  */
 
 'use client';
@@ -15,17 +16,24 @@ import { getDashboardStats, getChartData, getActivities } from '@/services/dashb
 import { AssetFilters } from '@/lib/types';
 
 /**
- * Hook state interface
+ * Common state structure for read-only data fetching hooks.
  */
 export interface UseApiQueryState<T> {
+  /** The data returned by the query function, or null if not yet loaded. */
   data: T | null;
+  /** True if a request is currently in flight. */
   loading: boolean;
+  /** Error object if the request failed. */
   error: ApiError | null;
+  /** Function to manually re-trigger the data fetch. */
   refetch: () => Promise<void>;
 }
 
 /**
- * Hook for fetching data with loading and error states
+ * Flexible hook for data fetching that manages the boilerplate of loading states and error toast displays.
+ * 
+ * @param queryFn - Async function that returns the data.
+ * @param options - Configuration for callbacks, toast visibility, and manual activation.
  */
 export function useApiQuery<T>(
   queryFn: () => Promise<T>,
@@ -75,16 +83,28 @@ export function useApiQuery<T>(
 }
 
 /**
- * Hook for mutations (POST, PUT, DELETE)
+ * State structure for write-based mutation hooks.
  */
 export interface UseApiMutationState<T, V> {
   data: T | null;
   loading: boolean;
   error: ApiError | null;
+  /** 
+   * Triggers the modification. 
+   * @param variables - The payload for the mutation.
+   */
   mutate: (variables: V) => Promise<T | null>;
+  /** Clears the current data and error states. */
   reset: () => void;
 }
 
+/**
+ * Hook for performing state-changing operations like POST, PUT, or DELETE.
+ * Handles success/error toasts and loading state tracking.
+ * 
+ * @param mutationFn - Async function that performs the action.
+ * @param options - Customization for messages and callbacks.
+ */
 export function useApiMutation<T, V = void>(
   mutationFn: (variables: V) => Promise<T>,
   options?: {
@@ -146,10 +166,7 @@ export function useApiMutation<T, V = void>(
 }
 
 /**
- * Hook for inventory data
- */
-/**
- * Hook for inventory data
+ * Feature-specific hook to fetch assets with filtering support.
  */
 export function useInventory(filters?: AssetFilters) {
   return useApiQuery(
@@ -161,7 +178,7 @@ export function useInventory(filters?: AssetFilters) {
 }
 
 /**
- * Hook for dashboard stats
+ * Fetches current aggregated metrics for the dashboard components.
  */
 export function useDashboardStats() {
   return useApiQuery(
@@ -173,7 +190,7 @@ export function useDashboardStats() {
 }
 
 /**
- * Hook for chart data
+ * Fetches time-series data intended for graphical chart representation.
  */
 export function useChartData() {
   return useApiQuery(
@@ -185,7 +202,7 @@ export function useChartData() {
 }
 
 /**
- * Hook for activities
+ * Fetches a list of the most recent system activities.
  */
 export function useActivities() {
   return useApiQuery(

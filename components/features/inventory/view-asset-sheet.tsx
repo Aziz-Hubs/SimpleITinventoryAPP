@@ -12,11 +12,11 @@ import {
   ShieldCheck,
   History,
 } from "lucide-react";
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
 import { EmployeeAssetsDialog } from "@/components/features/employees/employee-assets-dialog";
 
 interface ViewAssetDialogProps {
-  asset: AssetLegacy | null;
+  asset: Asset | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -52,7 +52,7 @@ export function ViewAssetSheet({
         open={open}
         onOpenChange={onOpenChange}
         sheetColor={sheetColor}
-        title={`${asset.Make} ${asset.Model}`}
+        title={`${asset.make} ${asset.model}`}
         description="Full technical specifications and lifecycle activity for this device."
         icon={<Box className="h-6 w-6" />}
         headerContent={
@@ -61,10 +61,10 @@ export function ViewAssetSheet({
               variant="outline"
               className="bg-background text-[10px] font-bold uppercase tracking-wider h-5"
             >
-              {asset.Category}
+              {asset.category}
             </Badge>
             <span className="text-xs font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border">
-              {asset["Service Tag"]}
+              {asset.servicetag}
             </span>
           </div>
         }
@@ -94,13 +94,19 @@ export function ViewAssetSheet({
               <div>
                 <Badge
                   className={`px-3 py-1 font-bold tracking-tight text-xs uppercase ${
-                    asset.State === "GOOD"
+                    asset.state === "GOOD"
                       ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-none hover:bg-emerald-500/20"
                       : ""
                   }`}
-                  variant={getStateVariant(asset.State) as any}
+                  variant={
+                    getStateVariant(asset.state) as
+                      | "default"
+                      | "secondary"
+                      | "destructive"
+                      | "outline"
+                  }
                 >
-                  {asset.State}
+                  {asset.state}
                 </Badge>
               </div>
             </div>
@@ -110,7 +116,7 @@ export function ViewAssetSheet({
               </p>
               <span className="text-sm font-semibold flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                {asset.Location}
+                {asset.location}
               </span>
             </div>
           </div>
@@ -131,25 +137,25 @@ export function ViewAssetSheet({
           </div>
           <div
             className={`flex items-center gap-4 rounded-xl border bg-muted/20 p-4 transition-all hover:bg-muted/30 group ${
-              asset.Employee !== "UNASSIGNED"
+              asset.employee !== "UNASSIGNED"
                 ? "cursor-pointer hover:shadow-md hover:border-primary/20"
                 : ""
             }`}
             onClick={() => {
-              if (asset.Employee !== "UNASSIGNED") {
+              if (asset.employee !== "UNASSIGNED") {
                 setIsEmployeeSheetOpen(true);
               }
             }}
           >
-            {asset.Employee === "UNASSIGNED" ? (
+            {asset.employee === "UNASSIGNED" ? (
               <div className="h-14 w-14 flex items-center justify-center rounded-xl bg-muted border-2 border-dashed group-hover:border-primary/20 transition-colors">
                 <CircleUser className="h-7 w-7 text-muted-foreground/50" />
               </div>
             ) : (
               <Avatar className="h-14 w-14 rounded-xl border-2 border-background shadow-md">
                 <AvatarImage
-                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${asset.Employee}`}
-                  alt={asset.Employee}
+                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${asset.employee}`}
+                  alt={asset.employee}
                 />
                 <AvatarFallback
                   className="rounded-xl font-bold"
@@ -159,26 +165,26 @@ export function ViewAssetSheet({
                     color: "var(--sheet-color)",
                   }}
                 >
-                  {asset.Employee.slice(0, 2).toUpperCase()}
+                  {asset.employee.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
             <div className="flex flex-col gap-1">
               <span className="text-base font-bold tracking-tight">
-                {asset.Employee === "UNASSIGNED"
+                {asset.employee === "UNASSIGNED"
                   ? "In Storage / Ready"
-                  : asset.Employee}
+                  : asset.employee}
               </span>
               <div className="flex items-center gap-2">
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    asset.Employee === "UNASSIGNED"
+                    asset.employee === "UNASSIGNED"
                       ? "bg-muted-foreground/30"
                       : "bg-emerald-500"
                   }`}
                 />
                 <span className="text-xs font-medium text-muted-foreground italic">
-                  {asset.Employee === "UNASSIGNED"
+                  {asset.employee === "UNASSIGNED"
                     ? "Inventory Control"
                     : "Click to view profile"}
                 </span>
@@ -250,7 +256,7 @@ export function ViewAssetSheet({
       </BaseDetailSheet>
 
       <EmployeeAssetsDialog
-        employeeName={asset.Employee}
+        employeeName={asset.employee}
         open={isEmployeeSheetOpen}
         onOpenChange={setIsEmployeeSheetOpen}
       />

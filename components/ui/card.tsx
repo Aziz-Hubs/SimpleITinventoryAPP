@@ -11,8 +11,9 @@ const cardVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-linear-to-t from-primary/5 to-card dark:bg-card text-card-foreground border-primary/10",
-        glass: "glass border-primary/10 text-foreground",
+          "bg-linear-to-t from-primary/5 to-card dark:bg-card text-card-foreground",
+        glass:
+          "bg-white/40 dark:bg-black/40 backdrop-blur-md border-white/20 dark:border-white/10 shadow-xl text-foreground",
         outline: "bg-transparent border-border text-foreground",
       },
     },

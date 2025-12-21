@@ -1,3 +1,9 @@
+/**
+ * @file site-header.tsx
+ * @description Top header bar with sidebar trigger, dynamic breadcrumbs derived from pathname, and theme toggle.
+ * @path /components/layout/site-header.tsx
+ */
+
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -21,7 +27,7 @@ export function SiteHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 glass transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) border-b border-primary/10">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 glass transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) border-b border-border/50">
       <div className="flex w-full items-center gap-2 px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator

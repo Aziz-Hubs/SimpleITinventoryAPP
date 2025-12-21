@@ -1,214 +1,297 @@
-import type { 
+/**
+ * @file maintenance-service.ts
+ * @description Service layer for managing maintenance tickets, including status tracking, 
+ * historical timelines, and technician assignments. Utilizes `MockStorage` for state persistence.
+ * @path /services/maintenance-service.ts
+ */
+
+import { 
   MaintenanceRecord, 
   MaintenanceTimelineEvent, 
   MaintenanceComment, 
-  MaintenanceStatus 
-} from "@/lib/maintenance-types";
+  MaintenanceStatus, 
+  MaintenanceFilters, 
+  PaginatedResponse 
+} from "@/lib/types";
 import initialMaintenanceData from "@/data/maintenance.json";
+import { MockStorage, STORAGE_KEYS } from "@/lib/mock-storage";
+import { paginateData } from "@/lib/utils";
+import { apiClient, isMockDataEnabled } from "@/lib/api-client";
 
-// Key for storage
-const STORAGE_KEY = "it_inventory_maintenance_data";
-
-// Helper to get simulated user (in a real app, this would come from auth context)
+/** 
+ * Static identifier for the current user performing actions.
+ * // TODO: (Refactor) Replace with a dynamic user object from the authentication hook/context.
+ * @private 
+ */
 const CURRENT_USER = "Admin User"; 
 
 /**
- * Initialize data from local storage or seed with JSON file
+ * Accesses or initializes the local storage-based maintenance database.
+ * Hydrates with `maintenance.json` if storage is empty.
+ * 
+ * @returns {MaintenanceRecord[]} The current set of maintenance records.
  */
-function getStoredData(): MaintenanceRecord[] {
-  if (typeof window === "undefined") return initialMaintenanceData as MaintenanceRecord[];
-  
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    // Seed and save
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialMaintenanceData));
-    return initialMaintenanceData as MaintenanceRecord[];
+function getMockMaintenance(): MaintenanceRecord[] {
+  return MockStorage.initialize(STORAGE_KEYS.MAINTENANCE, initialMaintenanceData as MaintenanceRecord[]);
+}
+
+/** 
+ * Artificial delay to simulate network latency for a more realistic UI feel. 
+ * @private
+ */
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Retrieves a filtered and paginated list of maintenance records.
+ * 
+ * @param filters - Search criteria (asset tag, issue, technician) and status filter.
+ * @returns {Promise<PaginatedResponse<MaintenanceRecord>>}
+ */
+export async function getMaintenanceRecords(filters: MaintenanceFilters = {}): Promise<PaginatedResponse<MaintenanceRecord>> {
+  if (isMockDataEnabled()) {
+    await delay(100);
+    const records = getMockMaintenance();
+
+    let filtered = [...records];
+    
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.assetTag.toLowerCase().includes(search) ||
+        r.issue.toLowerCase().includes(search) ||
+        r.technician?.toLowerCase().includes(search)
+      );
+    }
+
+    if (filters.status && filters.status !== 'all') {
+      filtered = filtered.filter(r => r.status === filters.status);
+    }
+
+    return paginateData(filtered, filters.page, filters.pageSize);
   }
-  
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error("Failed to parse maintenance data", e);
-    return initialMaintenanceData as MaintenanceRecord[];
-  }
+
+  return apiClient.get<PaginatedResponse<MaintenanceRecord>>('/maintenance', {
+    params: filters as Record<string, string | number | boolean | undefined>
+  });
 }
 
 /**
- * Save data to local storage
+ * Fetches a single maintenance record by its ID.
+ * 
+ * @param id - The MNT-XXX identifier.
+ * @returns {Promise<MaintenanceRecord | null>}
  */
-function saveData(data: MaintenanceRecord[]) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
-}
-
-// SIMULATED DELAY FOR REALISM
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-export async function getMaintenanceRecords(): Promise<MaintenanceRecord[]> {
-  await delay(100);
-  return getStoredData();
-}
-
 export async function getMaintenanceRecordById(id: string): Promise<MaintenanceRecord | null> {
-  await delay(50);
-  const records = getStoredData();
-  return records.find((record) => record.id === id) || null;
+  if (isMockDataEnabled()) {
+    await delay(50);
+    const records = getMockMaintenance();
+    return records.find((record: MaintenanceRecord) => record.id === id) || null;
+  }
+
+  return apiClient.get<MaintenanceRecord>(`/maintenance/${id}`);
 }
 
+/**
+ * Initiates a new maintenance request.
+ * Automatically generates a new ID, sets the reported date, and creates an initial "Creation" timeline event.
+ * 
+ * @param data - The core record details.
+ * @returns {Promise<MaintenanceRecord>} The initialized record.
+ */
 export async function createMaintenanceRequest(
-  data: Omit<MaintenanceRecord, "id" | "reportedDate" | "notes" | "timeline" | "comments">
+  data: Omit<MaintenanceRecord, "id" | "reportedDate" | "timeline" | "comments"> & { notes?: string[] }
 ): Promise<MaintenanceRecord> {
-  await delay(500);
-  const records = getStoredData();
-  
-  const newId = `MNT-${String(records.length + 1).padStart(3, "0")}`;
-  const now = new Date().toISOString();
-  
-  const newRecord: MaintenanceRecord = {
-    ...data,
-    id: newId,
-    reportedDate: now.split("T")[0], // YYYY-MM-DD
-    notes: [],
-    comments: [],
-    timeline: [
-      {
-        id: crypto.randomUUID(),
-        type: "creation",
-        title: "Ticket Created",
-        description: `Ticket created by ${data.reportedBy}`,
-        timestamp: now,
-        user: CURRENT_USER 
-      }
-    ]
-  };
+  if (isMockDataEnabled()) {
+    await delay(500);
+    const records = getMockMaintenance();
+    
+    const newId = `MNT-${String(records.length + 1).padStart(3, "0")}`;
+    const now = new Date().toISOString();
+    
+    const newRecord: MaintenanceRecord = {
+      ...data,
+      id: newId,
+      reportedDate: now.split("T")[0], // YYYY-MM-DD
+      notes: data.notes || [],
+      comments: [],
+      timeline: [
+        {
+          id: crypto.randomUUID(),
+          type: "creation",
+          title: "Ticket Created",
+          description: `Ticket created by ${data.reportedBy}`,
+          timestamp: now,
+          user: CURRENT_USER 
+        }
+      ]
+    };
 
-  records.push(newRecord);
-  saveData(records);
-  return newRecord;
+    MockStorage.add(STORAGE_KEYS.MAINTENANCE, newRecord);
+    return newRecord;
+  }
+
+  return apiClient.post<MaintenanceRecord>('/maintenance', data);
 }
 
+/**
+ * Updates the lifecycle status of a maintenance ticket.
+ * In addition to changing the status, it records a timeline event and optionally appends a legacy note.
+ * 
+ * @param id - The ticket ID.
+ * @param status - The new MaintenanceStatus.
+ * @param note - Optional text note for historical tracking.
+ * @returns {Promise<MaintenanceRecord | null>} The updated record or null if not found.
+ */
 export async function updateMaintenanceStatus(
   id: string,
   status: MaintenanceStatus,
   note?: string
 ): Promise<MaintenanceRecord | null> {
-  await delay(300);
-  const records = getStoredData();
-  const index = records.findIndex(r => r.id === id);
-  
-  if (index === -1) return null;
-  
-  const record = records[index];
-  const oldStatus = record.status;
-  const now = new Date().toISOString();
+  if (isMockDataEnabled()) {
+    await delay(300);
+    const records = getMockMaintenance();
+    const index = records.findIndex((r: MaintenanceRecord) => r.id === id);
+    
+    if (index === -1) return null;
+    
+    const record = { ...records[index] };
+    const oldStatus = record.status;
+    const now = new Date().toISOString();
 
-  // Update Status
-  record.status = status;
-  
-  // Add Note if exists (Legacy support)
-  if (note) {
-    record.notes.push(`${now.split("T")[0]}: ${note}`);
+    record.status = status;
+    
+    if (note) {
+      record.notes = [...record.notes, `${now.split("T")[0]}: ${note}`];
+    }
+
+    if (status === "completed" && !record.completedDate) {
+      record.completedDate = now.split("T")[0];
+    }
+
+    const newEvent: MaintenanceTimelineEvent = {
+      id: crypto.randomUUID(),
+      type: "status_change",
+      title: "Status Updated",
+      description: `Status changed from ${oldStatus} to ${status}`,
+      timestamp: now,
+      user: CURRENT_USER
+    };
+    record.timeline = [newEvent, ...record.timeline];
+
+    return MockStorage.update<MaintenanceRecord>(STORAGE_KEYS.MAINTENANCE, id, record);
   }
 
-  // Update Completed Date
-  if (status === "completed" && !record.completedDate) {
-    record.completedDate = now.split("T")[0];
-  }
-
-  // Add Timeline Event
-  record.timeline.unshift({
-    id: crypto.randomUUID(),
-    type: "status_change",
-    title: "Status Updated",
-    description: `Status changed from ${oldStatus} to ${status}`,
-    timestamp: now,
-    user: CURRENT_USER
-  });
-
-  // Save
-  records[index] = record;
-  saveData(records);
-  
-  return record;
+  return apiClient.patch<MaintenanceRecord>(`/maintenance/${id}/status`, { status, note });
 }
 
+/**
+ * Adds a user comment to a maintenance record.
+ * 
+ * @param id - The ticket ID.
+ * @param content - The comment text.
+ * @param isInternal - If true, flags as visible only to staff.
+ * @returns {Promise<MaintenanceComment | null>} The created comment or null if the record was not found.
+ */
 export async function addMaintenanceComment(
   id: string,
   content: string,
   isInternal: boolean = false
 ): Promise<MaintenanceComment | null> {
-  await delay(200);
-  const records = getStoredData();
-  const index = records.findIndex(r => r.id === id);
-  
-  if (index === -1) return null;
-  
-  const now = new Date().toISOString();
-  const newComment: MaintenanceComment = {
-    id: crypto.randomUUID(),
-    content,
-    author: CURRENT_USER,
-    timestamp: now,
-    isInternal
-  };
+  if (isMockDataEnabled()) {
+    await delay(200);
+    const records = getMockMaintenance();
+    const index = records.findIndex((r: MaintenanceRecord) => r.id === id);
+    
+    if (index === -1) return null;
+    
+    const record = { ...records[index] };
+    const now = new Date().toISOString();
+    const newComment: MaintenanceComment = {
+      id: crypto.randomUUID(),
+      content,
+      author: CURRENT_USER,
+      timestamp: now,
+      isInternal
+    };
 
-  records[index].comments.unshift(newComment);
-  
-  // Add Timeline Event for internal visibility primarily
-  records[index].timeline.unshift({
-    id: crypto.randomUUID(),
-    type: "comment",
-    title: "Comment Added",
-    description: isInternal ? "Internal note added" : "Public comment added",
-    timestamp: now,
-    user: CURRENT_USER
-  });
+    record.comments = [newComment, ...record.comments];
+    
+    const newTimelineEvent: MaintenanceTimelineEvent = {
+      id: crypto.randomUUID(),
+      type: "comment",
+      title: "Comment Added",
+      description: isInternal ? "Internal note added" : "Public comment added",
+      timestamp: now,
+      user: CURRENT_USER
+    };
+    record.timeline = [newTimelineEvent, ...record.timeline];
 
-  saveData(records);
-  return newComment;
+    MockStorage.update<MaintenanceRecord>(STORAGE_KEYS.MAINTENANCE, id, record);
+    return newComment;
+  }
+
+  return apiClient.post<MaintenanceComment>(`/maintenance/${id}/comments`, { content, isInternal });
 }
 
+/**
+ * Updates generic fields on a maintenance record.
+ * Automatically injects an "assignment" timeline event if the technician field is changed.
+ * 
+ * @param id - The target ticket ID.
+ * @param updates - Partial record containing fields to update.
+ * @returns {Promise<MaintenanceRecord | null>}
+ */
 export async function updateMaintenanceRecord(
   id: string,
   updates: Partial<MaintenanceRecord>
 ): Promise<MaintenanceRecord | null> {
-  await delay(300);
-  const records = getStoredData();
-  const index = records.findIndex(r => r.id === id);
-  if (index === -1) return null;
+  if (isMockDataEnabled()) {
+    await delay(300);
+    const records = getMockMaintenance();
+    const index = records.findIndex((r: MaintenanceRecord) => r.id === id);
+    if (index === -1) return null;
 
-  const record = records[index];
-  
-  // Merge updates
-  const updatedRecord = { ...record, ...updates };
-  
-  // Detect significant changes for timeline (simple version)
-  if (updates.technician && updates.technician !== record.technician) {
-    updatedRecord.timeline.unshift({
-      id: crypto.randomUUID(),
-      type: "assignment",
-      title: "Technician Assigned",
-      description: `Assigned to ${updates.technician}`,
-      timestamp: new Date().toISOString(),
-      user: CURRENT_USER
-    });
+    const record = { ...records[index] };
+    const updatedRecord = { ...record, ...updates };
+    
+    if (updates.technician && updates.technician !== record.technician) {
+      const newEvent: MaintenanceTimelineEvent = {
+        id: crypto.randomUUID(),
+        type: "assignment",
+        title: "Technician Assigned",
+        description: `Assigned to ${updates.technician}`,
+        timestamp: new Date().toISOString(),
+        user: CURRENT_USER
+      };
+      updatedRecord.timeline = [newEvent, ...updatedRecord.timeline];
+    }
+
+    return MockStorage.update<MaintenanceRecord>(STORAGE_KEYS.MAINTENANCE, id, updatedRecord);
   }
 
-  records[index] = updatedRecord;
-  saveData(records);
-  return updatedRecord;
+  return apiClient.put<MaintenanceRecord>(`/maintenance/${id}`, updates);
 }
 
+/**
+ * Retrieves the full maintenance history for a specific asset hardware identifier.
+ * 
+ * @param assetTag - The asset's unique hardware tag.
+ * @returns {Promise<MaintenanceRecord[]>}
+ */
 export async function getAssetMaintenanceHistory(assetTag: string): Promise<MaintenanceRecord[]> {
-  const records = await getMaintenanceRecords();
-  return records.filter((record) => record.assetTag === assetTag);
+  const response = await getMaintenanceRecords();
+  return response.data.filter((record: MaintenanceRecord) => record.assetTag === assetTag);
 }
 
+/**
+ * Transforms an array of maintenance records into a CSV-formatted string.
+ * 
+ * @param records - List of records to export.
+ * @returns {Promise<string>} The generated CSV content.
+ */
 export async function exportMaintenanceReport(
   records: MaintenanceRecord[]
 ): Promise<string> {
-  // Generate CSV content
   const headers = [
     "ID",
     "Asset Tag",

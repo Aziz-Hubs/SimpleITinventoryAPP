@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { MaintenanceStatus } from "@/lib/maintenance-types";
+import { MaintenanceStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface MaintenanceToolbarProps {

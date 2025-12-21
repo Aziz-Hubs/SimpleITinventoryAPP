@@ -16,6 +16,8 @@ import {
   Trash2,
   User,
   UserPlus,
+  Upload,
+  Download,
 } from "lucide-react";
 import {
   flexRender,
@@ -58,15 +60,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { EmployeeAssetsDialog } from "./employee-assets-dialog";
 import { EmployeeDetailSheet } from "./employee-detail-sheet";
+import { ImportEmployeesDialog } from "./import-employees-dialog";
+import { parseEmployeesCsv, ParsedEmployee } from "@/lib/csv-parser";
 import { BaseDataTable } from "@/components/shared/base-data-table";
 
 import {
-  getEmployees,
+  getEmployeeById,
   createEmployee,
   updateEmployee,
   deleteEmployee,
-  type Employee,
 } from "@/services/employee-service";
+import { Employee } from "@/lib/types";
 
 // ----------------------------------------------------------------------
 // Helper Functions
@@ -86,25 +90,29 @@ interface EmployeesTableProps {
   description?: React.ReactNode;
 }
 
-export function EmployeesTable({ title, description }: EmployeesTableProps) {
-  // --- State Managment ---
-  const [employees, setEmployees] = React.useState<Employee[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+import {
+  useEmployees,
+  useCreateEmployee,
+  useUpdateEmployee,
+  useDeleteEmployee,
+} from "@/hooks/api/use-employees";
+import { useTableParams } from "@/hooks/use-table-params";
 
-  React.useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const data = await getEmployees();
-        setEmployees(data);
-      } catch (error) {
-        console.error("Failed to fetch employees:", error);
-        toast.error("Failed to load employees");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchEmployees();
-  }, []);
+export function EmployeesTable({ title, description }: EmployeesTableProps) {
+  const { params, setParams } = useTableParams();
+
+  const { data: response, isLoading } = useEmployees({
+    search: params.search,
+    page: params.page,
+    pageSize: params.pageSize,
+  });
+
+  const employees = response?.data || [];
+
+  const createMutation = useCreateEmployee();
+  const updateMutation = useUpdateEmployee();
+  const deleteMutation = useDeleteEmployee();
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -112,10 +120,6 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
 
   // --- Dialog States ---
   const [isAddOpen, setIsAddOpen] = React.useState(false);
@@ -134,25 +138,28 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
   const [isViewingEmployeeOpen, setIsViewingEmployeeOpen] =
     React.useState(false);
 
+  // --- Import State ---
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const [importEmployees, setImportEmployees] = React.useState<
+    ParsedEmployee[]
+  >([]);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   // --- Form Handlers ---
   const handleAddEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newEmployeeData: Omit<Employee, "id"> = {
+    const newEmployeeData = {
       fullName: formData.get("fullName") as string,
       email: formData.get("email") as string,
       department: formData.get("department") as string,
       position: formData.get("position") as string,
     };
 
-    try {
-      const newEmployee = await createEmployee(newEmployeeData);
-      setEmployees((prev) => [newEmployee, ...prev]);
-      setIsAddOpen(false);
-      toast.success("Employee added successfully");
-    } catch (error) {
-      toast.error("Failed to add employee");
-    }
+    createMutation.mutate(newEmployeeData, {
+      onSuccess: () => setIsAddOpen(false),
+    });
   };
 
   const handleEditEmployee = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -160,44 +167,26 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
     if (!editingEmployee) return;
 
     const formData = new FormData(e.currentTarget);
-    const updatedData: Partial<Employee> = {
+    const updatedData = {
       fullName: formData.get("fullName") as string,
       email: formData.get("email") as string,
       department: formData.get("department") as string,
       position: formData.get("position") as string,
     };
 
-    try {
-      const updatedEmployee = await updateEmployee(
-        editingEmployee.id,
-        updatedData
-      );
-      setEmployees((prev) =>
-        prev.map((emp) =>
-          emp.id === editingEmployee.id ? updatedEmployee : emp
-        )
-      );
-      setEditingEmployee(null);
-      toast.success("Employee updated successfully");
-    } catch (error) {
-      toast.error("Failed to update employee");
-    }
+    updateMutation.mutate(
+      { id: editingEmployee.id, employee: updatedData },
+      {
+        onSuccess: () => setEditingEmployee(null),
+      }
+    );
   };
 
   const handleDeleteEmployee = async () => {
     if (!employeeToDelete) return;
-
-    try {
-      await deleteEmployee(employeeToDelete.id);
-      setEmployees((prev) =>
-        prev.filter((emp) => emp.id !== employeeToDelete.id)
-      );
-      setIsDeleteOpen(false);
-      setEmployeeToDelete(null);
-      toast.error("Employee deleted");
-    } catch (error) {
-      toast.error("Failed to delete employee");
-    }
+    deleteMutation.mutate(employeeToDelete.id, {
+      onSuccess: () => setIsDeleteOpen(false),
+    });
   };
 
   const handleBulkDelete = async () => {
@@ -206,15 +195,80 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
       .rows.map((row) => row.original.id);
 
     try {
-      await Promise.all(selectedIds.map((id) => deleteEmployee(id)));
-      setEmployees((prev) =>
-        prev.filter((emp) => !selectedIds.includes(emp.id))
+      await Promise.all(
+        selectedIds.map((id) => deleteMutation.mutateAsync(id))
       );
       setRowSelection({});
-      toast.error(`${selectedIds.length} employees deleted`);
+      toast.success(`${selectedIds.length} employees deleted`);
     } catch (error) {
       toast.error("Failed to delete some employees");
     }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const parsed = await parseEmployeesCsv(file);
+      setImportEmployees(parsed);
+      setIsImportOpen(true);
+    } catch (error) {
+      toast.error("Failed to parse CSV file");
+      console.error(error);
+    } finally {
+      // Reset input so same file can be selected again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleImportConfirm = async () => {
+    setIsImporting(true);
+    try {
+      // Process strictly sequentially to avoid race conditions or overwhelming the server
+      for (const employee of importEmployees) {
+        await createMutation.mutateAsync({
+          fullName: employee.fullName,
+          email: employee.email,
+          department: employee.department || "Unassigned", // Default fallback
+          position: employee.position || "Staff", // Default fallback
+        });
+      }
+      toast.success(
+        `Successfully imported ${importEmployees.length} employees`
+      );
+      setIsImportOpen(false);
+      setImportEmployees([]);
+    } catch (error) {
+      toast.error("Failed to import some employees");
+      console.error(error);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleExport = () => {
+    if (!employees || employees.length === 0) return;
+
+    const headers = ["Full Name", "Email", "Department", "Position"];
+    const rows = employees.map((emp) =>
+      [emp.fullName, emp.email, emp.department, emp.position]
+        .map((v) => (v && v.includes(",") ? `"${v}"` : v))
+        .join(",")
+    );
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "employees_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Employees exported to CSV");
   };
 
   // --- Column Definitions ---
@@ -396,13 +450,18 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
+    // Sync pagination with URL params
+    manualPagination: true,
+    pageCount: response?.pagination?.totalPages || -1,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination,
+      pagination: {
+        pageIndex: (params.page || 1) - 1,
+        pageSize: params.pageSize || 10,
+      },
     },
   });
 
@@ -452,6 +511,29 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Employee
+              </Button>
+              <input
+                type="file"
+                accept=".csv"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-10 px-4 border-primary/20 bg-background/50 hover:bg-primary/5 text-primary shadow-sm"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Import CSV
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="h-10 px-4 border-primary/20 bg-background/50 hover:bg-primary/5 text-primary shadow-sm"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
               </Button>
               <SheetContent
                 side="right"
@@ -798,6 +880,16 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
         employee={viewingEmployee}
         open={isViewingEmployeeOpen}
         onOpenChange={setIsViewingEmployeeOpen}
+      />
+
+      {/* Import Employees Dialog */}
+      <ImportEmployeesDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        employees={importEmployees}
+        onConfirm={handleImportConfirm}
+        onCancel={() => setIsImportOpen(false)}
+        isImporting={isImporting}
       />
     </div>
   );

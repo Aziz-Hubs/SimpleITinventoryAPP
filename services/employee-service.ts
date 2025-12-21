@@ -1,90 +1,84 @@
 /**
- * Employee Service
- * 
- * Handles all employee-related data management.
- * Pulls employee information from inv.json (single source of truth).
+ * @file employee-service.ts
+ * @description Service layer for managing employee-related data.
+ * Reads employee data from the dedicated `data/employees.json` file.
+ * @path /services/employee-service.ts
  */
 
-import inventoryData from '@/data/inv.json';
+import employeesJson from '@/data/employees.json';
 import { isMockDataEnabled, apiClient } from '@/lib/api-client';
+import { Employee, PaginatedResponse, EmployeeFilters } from '@/lib/types';
+import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
+import { paginateData } from '@/lib/utils';
 
-export interface Employee {
-    id: string;
-    fullName: string;
-    email: string;
-    department: string;
-    position: string;
-}
-
-
-// Define the shape of the raw inventory JSON data
-interface InventoryItem {
-    category: string;
-    state: string;
-    employee: string;
-    [key: string]: unknown;
+/**
+ * Retrieves the initial employees list from the JSON file.
+ * @returns {Employee[]} The list of employees from the data source.
+ */
+function getInitialEmployees(): Employee[] {
+    return employeesJson.employees as Employee[];
 }
 
 /**
- * Extract unique employees from inventory data
+ * Retrieves the employee list from local storage or hydrates it from the employees.json data.
+ * If cached data is empty but source has data, it refreshes the cache.
+ * 
+ * @returns {Employee[]}
  */
-function extractEmployeesFromInventory(): Employee[] {
-    const uniqueNames = new Set<string>();
-
-    (inventoryData as InventoryItem[]).forEach(item => {
-        if (item.employee && item.employee !== 'UNASSIGNED') {
-            uniqueNames.add(item.employee);
-        }
-    });
-
-    return Array.from(uniqueNames).sort().map((name, index) => {
-        // Generate a consistent ID based on the index
-        const id = `EMP-${(index + 1).toString().padStart(3, '0')}`;
-
-        // Create a mock email from the name
-        // Names are formatted as "Last, First" or "First Last"
-        const cleanName = name.replace(',', '').split(' ');
-        const firstName = cleanName[cleanName.length - 1].toLowerCase();
-        const lastName = cleanName[0].toLowerCase();
-        const email = `${firstName}.${lastName}@acme.inc`;
-
-        // Mock department and position for now
-        // In a real app, these would come from an employee database
-        const departments = ['Engineering', 'Design', 'Product', 'Marketing', 'HR', 'Sales', 'Support', 'IT', 'Finance'];
-        const positions = ['Specialist', 'Manager', 'Developer', 'Analyst', 'Lead', 'Senior'];
-
-        return {
-            id,
-            fullName: name,
-            email,
-            department: departments[index % departments.length],
-            position: positions[index % positions.length],
-        };
-    });
+function getMockEmployees(): Employee[] {
+    const sourceData = getInitialEmployees();
+    const cachedData = MockStorage.getAll<Employee>(STORAGE_KEYS.EMPLOYEES);
+    
+    // If cache is empty but source has data, refresh from source
+    if (cachedData.length === 0 && sourceData.length > 0) {
+        return MockStorage.refresh(STORAGE_KEYS.EMPLOYEES, sourceData);
+    }
+    
+    // Otherwise use standard initialize (returns cached if exists, or saves source)
+    return MockStorage.initialize(STORAGE_KEYS.EMPLOYEES, sourceData);
 }
 
-const MOCK_EMPLOYEES: Employee[] = extractEmployeesFromInventory();
-
-
 /**
- * Get all employees
+ * Retrieves a list of employees with optional filtering.
+ * 
+ * @param filters - Search query (name/email/dept) and department filter.
+ * @returns {Promise<PaginatedResponse<Employee>>}
  */
-export async function getEmployees(): Promise<Employee[]> {
+export async function getEmployees(filters: EmployeeFilters = {}): Promise<PaginatedResponse<Employee>> {
     if (isMockDataEnabled()) {
-        return Promise.resolve(MOCK_EMPLOYEES);
+        const employees = getMockEmployees();
+        
+        let filtered = [...employees];
+        if (filters.search) {
+            const search = filters.search.toLowerCase();
+            filtered = filtered.filter(e => 
+                e.fullName.toLowerCase().includes(search) || 
+                e.email.toLowerCase().includes(search) ||
+                e.department.toLowerCase().includes(search)
+            );
+        }
+
+        if (filters.department && filters.department !== 'all') {
+            filtered = filtered.filter(e => e.department === filters.department);
+        }
+
+        return Promise.resolve(paginateData(filtered, filters.page, filters.pageSize));
     }
 
-    // Call real API
-    const response = await apiClient.get<{ data: Employee[] }>('/employees');
-    return response.data;
+    return apiClient.get<PaginatedResponse<Employee>>('/employees', { 
+        params: filters as Record<string, string | number | boolean | undefined> 
+    });
 }
 
 /**
- * Get employee by ID
+ * Finds a specific employee by their generated ID.
+ * 
+ * @param id - The EMP-XXX string.
+ * @returns {Promise<Employee | null>}
  */
 export async function getEmployeeById(id: string): Promise<Employee | null> {
     if (isMockDataEnabled()) {
-        const employee = MOCK_EMPLOYEES.find(e => e.id === id);
+        const employee = getMockEmployees().find((e: Employee) => e.id === id);
         return Promise.resolve(employee || null);
     }
 
@@ -92,28 +86,36 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
 }
 
 /**
- * Get employee by Name
+ * Searches for an employee by their full name.
+ * 
+ * @param name - The full name string (case-insensitive).
+ * @returns {Promise<Employee | null>}
  */
 export async function getEmployeeByName(name: string): Promise<Employee | null> {
     if (isMockDataEnabled()) {
-        const employee = MOCK_EMPLOYEES.find(e => e.fullName.toLowerCase() === name.toLowerCase());
+        const employee = getMockEmployees().find((e: Employee) => e.fullName.toLowerCase() === name.toLowerCase());
         return Promise.resolve(employee || null);
     }
 
-    const employees = await getEmployees();
-    return employees.find(e => e.fullName.toLowerCase() === name.toLowerCase()) || null;
+    const response = await getEmployees();
+    return response.data.find(e => e.fullName.toLowerCase() === name.toLowerCase()) || null;
 }
 
 /**
- * Create a new employee
+ * Adds a new employee to the system.
+ * 
+ * @param employee - Employee detail excluding ID.
+ * @sideeffect Appends to mock storage if enabled.
+ * @returns {Promise<Employee>} The created object with its new ID.
  */
 export async function createEmployee(employee: Omit<Employee, 'id'>): Promise<Employee> {
     if (isMockDataEnabled()) {
+        const employees = getMockEmployees();
         const newEmployee: Employee = {
             ...employee,
-            id: `EMP-${(MOCK_EMPLOYEES.length + 1).toString().padStart(3, '0')}`,
+            id: `EMP-${(employees.length + 1).toString().padStart(3, '0')}`,
         };
-        MOCK_EMPLOYEES.push(newEmployee);
+        MockStorage.add(STORAGE_KEYS.EMPLOYEES, newEmployee);
         return Promise.resolve(newEmployee);
     }
 
@@ -121,31 +123,38 @@ export async function createEmployee(employee: Omit<Employee, 'id'>): Promise<Em
 }
 
 /**
- * Update an existing employee
+ * Updates an existing employee record.
+ * 
+ * @param id - The target ID.
+ * @param updates - Partial object containing fields to change.
+ * @throws {Error} If the ID does not exist in mock storage.
+ * @returns {Promise<Employee>}
  */
-export async function updateEmployee(id: string, employee: Partial<Employee>): Promise<Employee> {
+export async function updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee> {
     if (isMockDataEnabled()) {
-        const index = MOCK_EMPLOYEES.findIndex(e => e.id === id);
-        if (index === -1) {
+        const updated = MockStorage.update<Employee>(STORAGE_KEYS.EMPLOYEES, id, updates);
+        if (!updated) {
             throw new Error(`Employee with ID ${id} not found`);
         }
-        MOCK_EMPLOYEES[index] = { ...MOCK_EMPLOYEES[index], ...employee };
-        return Promise.resolve(MOCK_EMPLOYEES[index]);
+        return Promise.resolve(updated);
     }
 
-    return apiClient.put<Employee>(`/employees/${id}`, employee);
+    return apiClient.put<Employee>(`/employees/${id}`, updates);
 }
 
 /**
- * Delete an employee
+ * Permanently removes an employee.
+ * 
+ * @param id - Employee ID to remove.
+ * @throws {Error} If the ID does not exist in mock storage.
+ * @returns {Promise<{ success: boolean; message: string }>}
  */
 export async function deleteEmployee(id: string): Promise<{ success: boolean; message: string }> {
     if (isMockDataEnabled()) {
-        const index = MOCK_EMPLOYEES.findIndex(e => e.id === id);
-        if (index === -1) {
+        const success = MockStorage.remove(STORAGE_KEYS.EMPLOYEES, id);
+        if (!success) {
             throw new Error(`Employee with ID ${id} not found`);
         }
-        MOCK_EMPLOYEES.splice(index, 1);
         return Promise.resolve({ success: true, message: 'Employee deleted successfully' });
     }
 

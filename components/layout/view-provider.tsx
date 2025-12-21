@@ -1,3 +1,10 @@
+/**
+ * @file view-provider.tsx
+ * @description Global context provider for managing application view state, search queries, and inventory data.
+ * Provides memoized data source to prevent unnecessary re-renders.
+ * @path /components/layout/view-provider.tsx
+ */
+
 "use client";
 
 import * as React from "react";
@@ -5,7 +12,7 @@ import initialData from "@/data/inv.json";
 
 export type ViewType =
   | "dashboard"
-  | "inventory-master"
+  | "inventory"
   | "computing"
   | "peripherals"
   | "network"

@@ -71,7 +71,7 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
     message: "Laptop LAP-001 has been assigned to Bob Smith",
     timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 mins ago
     read: false,
-    actionUrl: "/inventory-master",
+    actionUrl: "/inventory",
   },
   {
     id: "notif-003",
@@ -81,7 +81,7 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
     message: "5 assets require maintenance within the next 7 days",
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
     read: false,
-    actionUrl: "/deployment-operations",
+    actionUrl: "/deployment",
   },
   {
     id: "notif-004",
@@ -255,8 +255,9 @@ export function NotificationsCenter({
                 <SheetTitle className="text-lg">Notifications</SheetTitle>
                 <SheetDescription className="text-xs">
                   {unreadCount > 0
-                    ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""
-                    }`
+                    ? `${unreadCount} unread notification${
+                        unreadCount > 1 ? "s" : ""
+                      }`
                     : "You're all caught up!"}
                 </SheetDescription>
               </div>
@@ -366,7 +367,9 @@ export function NotificationsCenter({
                             <div
                               className={cn(
                                 "mt-0.5 rounded-lg p-2",
-                                notification.read ? "bg-muted/50" : iconColor.replace("text-", "bg-") + "/10",
+                                notification.read
+                                  ? "bg-muted/50"
+                                  : iconColor.replace("text-", "bg-") + "/10",
                                 iconColor
                               )}
                             >

@@ -22,7 +22,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts";
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
 import {
   ChartConfig,
   ChartContainer,
@@ -33,11 +33,11 @@ import {
 } from "@/components/ui/chart";
 
 // --- Total Assets Chart (Horizontal Bar) ---
-export function AssetsCategoryChart({ assets }: { assets: AssetLegacy[] }) {
+export function AssetsCategoryChart({ assets }: { assets: Asset[] }) {
   const chartData = useMemo(() => {
     const counts: Record<string, number> = {};
     assets.forEach((a) => {
-      const cat = a.Category || "Unknown";
+      const cat = a.category || "Unknown";
       counts[cat] = (counts[cat] || 0) + 1;
     });
 
@@ -119,10 +119,10 @@ export function AssetsCategoryChart({ assets }: { assets: AssetLegacy[] }) {
 }
 
 // --- Deployment Status Chart (Radial / Gauge) ---
-export function DeploymentStatusChart({ assets }: { assets: AssetLegacy[] }) {
+export function DeploymentStatusChart({ assets }: { assets: Asset[] }) {
   const data = useMemo(() => {
     const assigned = assets.filter(
-      (a) => a.Employee && a.Employee !== "UNASSIGNED"
+      (a) => a.employee && a.employee !== "UNASSIGNED"
     ).length;
     const total = assets.length;
     const percentage = total > 0 ? Math.round((assigned / total) * 100) : 0;
@@ -177,19 +177,19 @@ export function DeploymentStatusChart({ assets }: { assets: AssetLegacy[] }) {
 }
 
 // --- Ready Stock Chart (Radar) ---
-export function ReadyStockChart({ assets }: { assets: AssetLegacy[] }) {
+export function ReadyStockChart({ assets }: { assets: Asset[] }) {
   const chartData = useMemo(() => {
     // Filter for ready stock
     const ready = assets.filter(
       (a) =>
-        (a.Employee === "UNASSIGNED" || !a.Employee) &&
-        ["GOOD", "NEW"].includes(a.State)
+        (a.employee === "UNASSIGNED" || !a.employee) &&
+        ["GOOD", "NEW"].includes(a.state)
     );
 
     // Group by Category
     const counts: Record<string, number> = {};
     ready.forEach((a) => {
-      const cat = a.Category || "Unknown";
+      const cat = a.category || "Unknown";
       counts[cat] = (counts[cat] || 0) + 1;
     });
 

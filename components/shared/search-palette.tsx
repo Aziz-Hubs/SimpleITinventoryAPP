@@ -12,9 +12,9 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { Asset, Employee } from "@/lib/types";
 import { getAssets } from "@/services/dashboard-service";
-import { getEmployees, type Employee } from "@/services/employee-service";
-import { AssetLegacy } from "@/lib/types";
+import { getEmployees } from "@/services/employee-service";
 
 export function SearchPalette({
   open,
@@ -23,14 +23,14 @@ export function SearchPalette({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [assets, setAssets] = React.useState<AssetLegacy[]>([]);
+  const [assets, setAssets] = React.useState<Asset[]>([]);
 
   const [employees, setEmployees] = React.useState<Employee[]>([]);
 
   React.useEffect(() => {
     // Fetch data for search
     getAssets().then(setAssets);
-    getEmployees().then(setEmployees);
+    getEmployees().then((res) => setEmployees(res.data));
   }, []);
 
   return (
@@ -42,15 +42,15 @@ export function SearchPalette({
           {assets.map((asset) => (
             <CommandItem
               key={asset.id}
-              value={`${asset.Make} ${asset.Model} ${asset["Service Tag"]}`}
+              value={`${asset.make} ${asset.model} ${asset.servicetag}`}
             >
               <IconBox className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
                 <span>
-                  {asset.Make} {asset.Model}
+                  {asset.make} {asset.model}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  TAG: {asset["Service Tag"]} • {asset.Employee}
+                  TAG: {asset.servicetag} • {asset.employee}
                 </span>
               </div>
             </CommandItem>

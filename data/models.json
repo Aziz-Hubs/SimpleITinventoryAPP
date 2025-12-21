@@ -1,0 +1,114 @@
+[
+  {
+    "name": "Vostro 3520",
+    "category": "Laptop",
+    "make": "Dell",
+    "specs": {
+      "cpu": "i5 - 1235U",
+      "ram": "16GB",
+      "storage": "512GB nvme",
+      "dedicatedgpu": "N/A",
+      "usb-aports": "3",
+      "usb-cports": "N/A",
+      "dimensions": "N/A",
+      "resolution": "N/A",
+      "refreshhertz": "N/A"
+    }
+  },
+  {
+    "name": "ThinkPad X1 Carbon Gen 10",
+    "category": "Laptop",
+    "make": "Lenovo",
+    "specs": {
+      "cpu": "i7 - 1260P",
+      "ram": "32GB",
+      "storage": "1TB SSD",
+      "dedicatedgpu": "Iris Xe",
+      "usb-aports": "2",
+      "usb-cports": "2",
+      "dimensions": "N/A",
+      "resolution": "N/A",
+      "refreshhertz": "N/A"
+    }
+  },
+  {
+    "name": "MacBook Pro 16",
+    "category": "Laptop",
+    "make": "Apple",
+    "specs": {
+      "cpu": "M2 Pro",
+      "ram": "32GB",
+      "storage": "1TB SSD",
+      "dedicatedgpu": "M2 Pro GPU",
+      "usb-aports": "0",
+      "usb-cports": "3",
+      "dimensions": "N/A",
+      "resolution": "3456 x 2234",
+      "refreshhertz": "120Hz"
+    }
+  },
+  {
+    "name": "P2419H",
+    "category": "Monitor",
+    "make": "Dell",
+    "specs": {
+      "cpu": "N/A",
+      "ram": "N/A",
+      "storage": "N/A",
+      "dedicatedgpu": "N/A",
+      "usb-aports": "N/A",
+      "usb-cports": "N/A",
+      "dimensions": "24 inch",
+      "resolution": "1920 x 1080",
+      "refreshhertz": "60Hz"
+    }
+  },
+  {
+    "name": "27PF",
+    "category": "Monitor",
+    "make": "Samsung",
+    "specs": {
+      "cpu": "N/A",
+      "ram": "N/A",
+      "storage": "N/A",
+      "dedicatedgpu": "N/A",
+      "usb-aports": "N/A",
+      "usb-cports": "N/A",
+      "dimensions": "27 inch",
+      "resolution": "1920 x 1080",
+      "refreshhertz": "75Hz"
+    }
+  },
+  {
+    "name": "ThinkPad Universal USB-C Dock",
+    "category": "Docking",
+    "make": "Lenovo",
+    "specs": {
+      "cpu": "N/A",
+      "ram": "N/A",
+      "storage": "N/A",
+      "dedicatedgpu": "N/A",
+      "usb-aports": "3",
+      "usb-cports": "1",
+      "dimensions": "N/A",
+      "resolution": "N/A",
+      "refreshhertz": "N/A"
+    }
+  },
+  {
+      "name": "Evolve2 65",
+      "category": "Headset",
+      "make": "Jabra",
+      "specs": {
+        "cpu": "N/A",
+        "ram": "N/A",
+        "storage": "N/A",
+        "dedicatedgpu": "N/A",
+        "usb-aports": "N/A",
+        "usb-cports": "N/A",
+        "dimensions": "N/A",
+        "resolution": "N/A",
+        "refreshhertz": "N/A"
+      }
+    }
+]

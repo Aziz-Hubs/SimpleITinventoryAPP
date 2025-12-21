@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { type Employee } from "@/services/employee-service";
+import { type Employee } from "@/lib/types";
 
 interface EmployeeDetailSheetProps {
   employee: Employee | null;

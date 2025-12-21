@@ -4,7 +4,7 @@ import type {
   MaintenanceStatus,
   MaintenancePriority,
   MaintenanceCategory,
-} from "@/lib/maintenance-types";
+} from "@/lib/types";
 
 interface StatusBadgeProps {
   variant:

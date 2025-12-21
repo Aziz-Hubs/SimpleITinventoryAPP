@@ -14,13 +14,10 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
-  updateMaintenanceStatus,
-  addMaintenanceComment,
-} from "@/services/maintenance-service";
-import type {
-  MaintenanceRecord,
-  MaintenanceStatus,
-} from "@/lib/maintenance-types";
+  useUpdateMaintenanceStatus,
+  useAddMaintenanceComment,
+} from "@/hooks/api/use-maintenance";
+import { MaintenanceRecord, MaintenanceStatus } from "@/lib/types";
 import { MaintenanceTimeline } from "./maintenance-timeline";
 import {
   IconCalendar,
@@ -63,7 +60,9 @@ export function MaintenanceDetailSheet({
   const [selectedStatus, setSelectedStatus] = React.useState<
     MaintenanceStatus | ""
   >("");
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const updateStatusMutation = useUpdateMaintenanceStatus();
+  const addCommentMutation = useAddMaintenanceComment();
 
   React.useEffect(() => {
     if (record) {
@@ -76,24 +75,36 @@ export function MaintenanceDetailSheet({
   const handleStatusUpdate = async () => {
     if (!selectedStatus || selectedStatus === record.status) return;
 
-    setIsSubmitting(true);
-    await updateMaintenanceStatus(record.id, selectedStatus, newNote);
-
-    setNewNote("");
-    setIsSubmitting(false);
-    onUpdate?.();
+    try {
+      await updateStatusMutation.mutateAsync({
+        id: record.id,
+        status: selectedStatus as MaintenanceStatus,
+        note: newNote,
+      });
+      setNewNote("");
+      onUpdate?.();
+    } catch (error) {
+      // Toast handled by mutation hook
+    }
   };
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
-    setIsSubmitting(true);
-    await addMaintenanceComment(record.id, newComment);
-
-    setNewComment("");
-    setIsSubmitting(false);
-    onUpdate?.();
+    try {
+      await addCommentMutation.mutateAsync({
+        id: record.id,
+        content: newComment,
+      });
+      setNewComment("");
+      onUpdate?.();
+    } catch (error) {
+      // Toast handled by mutation hook
+    }
   };
+
+  const isSubmitting =
+    updateStatusMutation.isPending || addCommentMutation.isPending;
 
   const formatDate = (date?: string) => {
     if (!date) return "N/A";
@@ -233,7 +244,7 @@ export function MaintenanceDetailSheet({
                   Detailed Description
                 </p>
                 <p className="text-sm text-muted-foreground leading-relaxed bg-muted/20 p-4 rounded-xl border border-border/10 italic">
-                  "{record.description}"
+                  &quot;{record.description}&quot;
                 </p>
               </div>
             </div>

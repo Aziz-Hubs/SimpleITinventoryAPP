@@ -76,7 +76,7 @@ import {
   updateMaintenanceRecord,
   exportMaintenanceReport,
 } from "@/services/maintenance-service";
-import type { MaintenanceRecord } from "@/lib/maintenance-types";
+import type { MaintenanceRecord } from "@/lib/types";
 
 export default function DeploymentOperationsPage() {
   const [onboardOpen, setOnboardOpen] = React.useState(false);
@@ -104,9 +104,9 @@ export default function DeploymentOperationsPage() {
   const [bulkUpdateOpen, setBulkUpdateOpen] = React.useState(false);
 
   const loadMaintenanceRecords = React.useCallback(async () => {
-    const records = await getMaintenanceRecords();
-    setMaintenanceRecords(records);
-    setFilteredRecords(records);
+    const response = await getMaintenanceRecords();
+    setMaintenanceRecords(response.data);
+    setFilteredRecords(response.data);
   }, []);
 
   React.useEffect(() => {
@@ -140,7 +140,9 @@ export default function DeploymentOperationsPage() {
 
     // Filter by priority
     if (priorityFilter !== "all") {
-      filtered = filtered.filter((record) => record.priority === priorityFilter);
+      filtered = filtered.filter(
+        (record) => record.priority === priorityFilter
+      );
     }
 
     // Filter by search query
@@ -160,7 +162,10 @@ export default function DeploymentOperationsPage() {
   }, [maintenanceRecords, statusFilter, priorityFilter, searchQuery]);
 
   const toggleSelectAll = () => {
-    if (selectedRecordIds.size === filteredRecords.length && filteredRecords.length > 0) {
+    if (
+      selectedRecordIds.size === filteredRecords.length &&
+      filteredRecords.length > 0
+    ) {
       setSelectedRecordIds(new Set());
     } else {
       setSelectedRecordIds(new Set(filteredRecords.map((r) => r.id)));
@@ -177,9 +182,12 @@ export default function DeploymentOperationsPage() {
     setSelectedRecordIds(newSelected);
   };
 
-  const handleBulkUpdate = async (updates: { status?: string; priority?: string }) => {
+  const handleBulkUpdate = async (updates: {
+    status?: string;
+    priority?: string;
+  }) => {
     const promises = Array.from(selectedRecordIds).map((id) =>
-      updateMaintenanceRecord(id, updates as any)
+      updateMaintenanceRecord(id, updates as Partial<MaintenanceRecord>)
     );
     await Promise.all(promises);
     loadMaintenanceRecords();
@@ -197,8 +205,9 @@ export default function DeploymentOperationsPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `maintenance-report-${new Date().toISOString().split("T")[0]
-      }.csv`;
+    a.download = `maintenance-report-${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -225,9 +234,7 @@ export default function DeploymentOperationsPage() {
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex items-center justify-between space-y-2">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Deployment Operations
-          </h2>
+          <h2 className="text-2xl font-bold tracking-tight">Deployment</h2>
           <p className="text-muted-foreground">
             Manage asset lifecycle and track maintenance operations.
           </p>
@@ -452,7 +459,10 @@ export default function DeploymentOperationsPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <Select
+                  value={priorityFilter}
+                  onValueChange={setPriorityFilter}
+                >
                   <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Filter Priority" />
                   </SelectTrigger>
@@ -522,7 +532,10 @@ export default function DeploymentOperationsPage() {
                   <TableRow>
                     <TableHead className="w-[40px]">
                       <Checkbox
-                        checked={selectedRecordIds.size === filteredRecords.length && filteredRecords.length > 0}
+                        checked={
+                          selectedRecordIds.size === filteredRecords.length &&
+                          filteredRecords.length > 0
+                        }
                         onCheckedChange={toggleSelectAll}
                         aria-label="Select all"
                       />
@@ -652,7 +665,7 @@ export default function DeploymentOperationsPage() {
                             width: `${Math.min(
                               (categoryStats.hardware /
                                 maintenanceRecords.length) *
-                              100,
+                                100,
                               100
                             )}%`,
                           }}
@@ -680,7 +693,7 @@ export default function DeploymentOperationsPage() {
                             width: `${Math.min(
                               (categoryStats.software /
                                 maintenanceRecords.length) *
-                              100,
+                                100,
                               100
                             )}%`,
                           }}
@@ -708,7 +721,7 @@ export default function DeploymentOperationsPage() {
                             width: `${Math.min(
                               (categoryStats.network /
                                 maintenanceRecords.length) *
-                              100,
+                                100,
                               100
                             )}%`,
                           }}
@@ -777,6 +790,6 @@ export default function DeploymentOperationsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div >
+    </div>
   );
 }

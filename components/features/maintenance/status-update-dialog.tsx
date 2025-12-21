@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MaintenanceRecord, MaintenanceStatus } from "@/lib/maintenance-types";
+import { MaintenanceRecord, MaintenanceStatus } from "@/lib/types";
 import {
   Dialog,
   DialogContent,

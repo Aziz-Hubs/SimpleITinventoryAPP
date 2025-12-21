@@ -1,9 +1,19 @@
-import { AssetLegacy, DashboardStats, ChartDataPoint, Activity } from "@/lib/types";
+/**
+ * @file dashboard-service.ts
+ * @description Service layer for aggregating dashboard-level data, including KPI statistics, 
+ * time-series chart data, and recent activity logs. Supports both mock data and real API integration.
+ * @path /services/dashboard-service.ts
+ */
+
+import { Asset, DashboardStats, ChartDataPoint, Activity, ApiResponse, PaginatedResponse } from "@/lib/types";
 import { apiClient, isMockDataEnabled } from "@/lib/api-client";
 import inventoryData from "@/data/inv.json";
 
-// Mock Data (Legacy format for backward compatibility)
-// Mock Data (Derived from inv.json for full compatibility)
+/**
+ * Interface representing the raw structure of individual items in the `inv.json` file.
+ * Used for safe type assertion during the initial mock data conversion process.
+ * @private
+ */
 interface InventoryItem {
   category?: string;
   state?: string;
@@ -25,28 +35,33 @@ interface InventoryItem {
   refreshhertz?: string;
 }
 
-export const MOCK_ASSETS: AssetLegacy[] = (inventoryData as InventoryItem[]).map((item, index) => ({
+/** 
+ * Transforms raw inventory JSON into the normalized camelCase format.
+ */
+export const MOCK_ASSETS: Asset[] = (inventoryData as InventoryItem[]).map((item, index) => ({
   id: index + 1,
-  Make: item.make || "N/A",
-  Model: item.model || "N/A",
-  Category: item.category || "N/A",
-  "Service Tag": item.servicetag || "N/A",
-  State: item.state || "N/A",
-  Employee: item.employee || "UNASSIGNED",
-  Location: item.location || "N/A",
-  "Warranty Expiry": item.warrantyexpiry || "N/A",
-  // Extended fields mapping
-  CPU: item.cpu || "N/A",
-  RAM: item.ram || "N/A",
-  Storage: item.storage || "N/A",
-  "Dedicated GPU": item.dedicatedgpu || "N/A",
-  "USB-A Ports": item["usb-aports"] || "N/A",
-  "USB-C Ports": item["usb-cports"] || "N/A",
-  Dimensions: item.dimensions || "N/A",
-  Resolution: item.resolution || "N/A",
-  "Refresh Rate": item.refreshhertz || "N/A"
+  category: item.category || '',
+  state: item.state || '',
+  warrantyexpiry: item.warrantyexpiry || '',
+  make: item.make || '',
+  model: item.model || '',
+  cpu: item.cpu || 'N/A',
+  ram: item.ram || 'N/A',
+  storage: item.storage || 'N/A',
+  dedicatedgpu: item.dedicatedgpu || 'N/A',
+  'usb-aports': item['usb-aports'] || 'N/A',
+  'usb-cports': item['usb-cports'] || 'N/A',
+  servicetag: item.servicetag || '',
+  employee: item.employee || 'UNASSIGNED',
+  additionalcomments: item.additionalcomments || '',
+  location: item.location || '',
+  dimensions: item.dimensions || 'N/A',
+  resolution: item.resolution || 'N/A',
+  refreshhertz: item.refreshhertz || 'N/A',
 }));
 
+
+/** Sample time-series data for rendering the inventory growth chart. */
 const MOCK_CHART_DATA: ChartDataPoint[] = [
   { date: "2024-04-01", laptop: 120, monitor: 80, peripheral: 45 },
   { date: "2024-04-02", laptop: 97, monitor: 60, peripheral: 30 },
@@ -141,10 +156,15 @@ const MOCK_CHART_DATA: ChartDataPoint[] = [
   { date: "2024-06-30", laptop: 446, monitor: 400, peripheral: 230 },
 ];
 
-const assignedCount = MOCK_ASSETS.filter(a => a.Employee && a.Employee !== "UNASSIGNED").length;
+/** 
+ * Derived calculation for assigned, total, and in-stock counts 
+ * based on the freshly mapped MOCK_ASSETS array.
+ */
+const assignedCount = MOCK_ASSETS.filter(a => a.employee && a.employee !== "UNASSIGNED").length;
 const totalCount = MOCK_ASSETS.length;
 const inStockCount = totalCount - assignedCount;
 
+/** Aggregated statistics for top-level dashboard KPI cards. */
 export const MOCK_STATS: DashboardStats = {
   totalAssets: {
     count: totalCount,
@@ -157,16 +177,17 @@ export const MOCK_STATS: DashboardStats = {
   },
   stock: {
     count: inStockCount,
-    ready: MOCK_ASSETS.filter(a => (a.Employee === "UNASSIGNED" || !a.Employee) && ["GOOD", "NEW"].includes(a.State)).length
+    ready: MOCK_ASSETS.filter(a => (a.employee === "UNASSIGNED" || !a.employee) && ["GOOD", "NEW"].includes(a.state)).length
   },
   maintenance: {
-    count: MOCK_ASSETS.filter(a => ["BROKEN", "FAIR"].includes(a.State)).length,
+    count: MOCK_ASSETS.filter(a => ["BROKEN", "FAIR"].includes(a.state)).length,
     pending: 2,
     inProgress: 1,
     completed: 12
   }
 };
 
+/** Recent activity stream for the dashboard sidebar/main feed. */
 const MOCK_ACTIVITIES: Activity[] = [
   {
     id: 1,
@@ -335,26 +356,40 @@ const MOCK_ACTIVITIES: Activity[] = [
   },
 ];
 
-// API Methods
-export async function getAssets(): Promise<AssetLegacy[]> {
+/**
+ * Fetches the full list of assets in legacy format.
+ * 
+ * @returns {Promise<Asset[]>}
+ */// API Methods
+export async function getAssets(): Promise<Asset[]> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_ASSETS);
   }
 
   // Call real API and convert to legacy format if needed
-  const response = await apiClient.get<{ data: AssetLegacy[] }>('/assets');
+  const response = await apiClient.get<{ data: Asset[] }>('/assets');
   return response.data || [];
 }
 
+/**
+ * Fetches data points for inventory usage charts.
+ * 
+ * @returns {Promise<ChartDataPoint[]>}
+ */
 export async function getChartData(): Promise<ChartDataPoint[]> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_CHART_DATA);
   }
 
-  const response = await apiClient.get<{ data: ChartDataPoint[] }>('/dashboard/chart-data');
-  return response.data || [];
+  const response = await apiClient.get<ApiResponse<ChartDataPoint[]>>('/dashboard/chart-data');
+  return response.data;
 }
 
+/**
+ * Retrieves the high-level summary statistics for the dashboard.
+ * 
+ * @returns {Promise<DashboardStats>}
+ */
 export async function getDashboardStats(): Promise<DashboardStats> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_STATS);
@@ -363,12 +398,50 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return apiClient.get<DashboardStats>('/dashboard/stats');
 }
 
+/**
+ * Retrieves a list of recent activities/audit logs.
+ * 
+ * @returns {Promise<Activity[]>}
+ */
 export async function getActivities(): Promise<Activity[]> {
   if (isMockDataEnabled()) {
     return Promise.resolve(MOCK_ACTIVITIES);
   }
 
-  const response = await apiClient.get<{ data: Activity[] }>('/activities');
-  return response.data || [];
+  const response = await apiClient.get<ApiResponse<Activity[]>>('/activities');
+  return response.data;
+}
+
+/**
+ * Creates a new activity log entry.
+ * 
+ * @param activity - The activity data to log (excluding ID and timestamp which are auto-generated).
+ * @returns {Promise<Activity>} The created activity record.
+ */
+export async function logActivity(activity: Omit<Activity, 'id' | 'timestamp'>): Promise<Activity> {
+  if (isMockDataEnabled()) {
+    // Only access MockStorage in the browser context
+    if (typeof window !== 'undefined') {
+      const { MockStorage, STORAGE_KEYS } = await import('@/lib/mock-storage');
+      const activities = MockStorage.getAll<Activity>(STORAGE_KEYS.ACTIVITIES);
+      
+      const newActivity: Activity = {
+        ...activity,
+        id: activities.length > 0 ? Math.max(...activities.map(a => a.id)) + 1 : 1,
+        timestamp: new Date().toISOString(),
+      };
+      
+      MockStorage.add(STORAGE_KEYS.ACTIVITIES, newActivity);
+      return Promise.resolve(newActivity);
+    }
+    // Fallback if not in browser context (for SSR safety)
+    return Promise.resolve({
+      ...activity,
+      id: Math.random(),
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  return apiClient.post<Activity>('/activities', activity);
 }
 

@@ -54,7 +54,9 @@ export default function HelpPage() {
             rel="noopener noreferrer"
           >
             <CardHeader>
-              <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80 font-medium">Helpdesk Site</CardDescription>
+              <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80 font-medium">
+                Helpdesk Site
+              </CardDescription>
               <CardTitle className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-indigo-500/10">
                   <IconWorld className="h-5 w-5 text-indigo-500" />
@@ -80,7 +82,9 @@ export default function HelpPage() {
         >
           <a href="mailto:helpdesk@acuative.com">
             <CardHeader>
-              <CardDescription className="text-emerald-600/80 dark:text-emerald-400/80 font-medium">Email Support</CardDescription>
+              <CardDescription className="text-emerald-600/80 dark:text-emerald-400/80 font-medium">
+                Email Support
+              </CardDescription>
               <CardTitle className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-emerald-500/10">
                   <IconMail className="h-5 w-5 text-emerald-500" />
@@ -106,7 +110,9 @@ export default function HelpPage() {
         >
           <a href="tel:9595">
             <CardHeader>
-              <CardDescription className="text-sky-600/80 dark:text-sky-400/80 font-medium">Line Support</CardDescription>
+              <CardDescription className="text-sky-600/80 dark:text-sky-400/80 font-medium">
+                Line Support
+              </CardDescription>
               <CardTitle className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-sky-500/10">
                   <IconPhone className="h-5 w-5 text-sky-500" />
@@ -227,9 +233,9 @@ export default function HelpPage() {
               </AccordionTrigger>
               <AccordionContent>
                 In the <strong>Deployment Operations</strong> page, select{" "}
-                <strong>Assign</strong>. You'll be prompted to select a user and
-                the asset you wish to assign. The system will automatically
-                update the asset's status.
+                <strong>Assign</strong>. You&apos;ll be prompted to select a
+                user and the asset you wish to assign. The system will
+                automatically update the asset&apos;s status.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
@@ -238,9 +244,9 @@ export default function HelpPage() {
               </AccordionTrigger>
               <AccordionContent>
                 Go to the <strong>Activities Log</strong> page and use the
-                search bar to enter the asset's service tag. This will filter
-                the log to show all recorded events related to that specific
-                asset.
+                search bar to enter the asset&apos;s service tag. This will
+                filter the log to show all recorded events related to that
+                specific asset.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-4">
@@ -272,7 +278,7 @@ export default function HelpPage() {
 
       <Card className="mt-8 bg-primary/5 border-primary/20">
         <CardHeader>
-          <CardTitle>Can't find what you're looking for?</CardTitle>
+          <CardTitle>Can&apos;t find what you&apos;re looking for?</CardTitle>
           <CardDescription>
             Our support team is available 24/7 for critical issues.
           </CardDescription>

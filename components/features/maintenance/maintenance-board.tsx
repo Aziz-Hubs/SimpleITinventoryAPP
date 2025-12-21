@@ -24,7 +24,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MaintenanceRecord, MaintenanceStatus } from "@/lib/maintenance-types";
+import { MaintenanceRecord, MaintenanceStatus } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";

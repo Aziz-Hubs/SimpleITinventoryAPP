@@ -1,13 +1,16 @@
 /**
- * This file contains the main DataTable component for displaying and managing assets.
- * It follows a "smart component" pattern where it handles its own state for actions
- * like sorting, filtering, and triggering modal dialogs for asset management.
+ * @file data-table.tsx
+ * @description The primary data visualization and orchestration component for the IT inventory.
+ * Implements a "Smart Component" pattern that manages complex state including view tabs (Active/Retired),
+ * category-aware dynamic column visibility, and a suite of management dialogs.
+ * @path /components/shared/data-table.tsx
  *
- * Key Features:
- * - Data rendering using @tanstack/react-table
- * - Sortable and filterable columns
- * - Row selection and batch actions
- * - Integrated actions for viewing, assigning, and updating assets
+ * @example
+ * <DataTable
+ *   data={assets}
+ *   title="Inventory Master"
+ *   description="Manage your global hardware fleet"
+ * />
  */
 
 "use client";
@@ -84,12 +87,14 @@ import { BulkDeleteDialog } from "@/components/features/inventory/bulk-delete-di
 import { CopyButton } from "@/components/shared/copy-button";
 import { BaseDataTable } from "@/components/shared/base-data-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
+import { useTableParams } from "@/hooks/use-table-params";
 
 // ----------------------------------------------------------------------
 // Types & Schemas
 // ----------------------------------------------------------------------
 
+/** Actions that can be performed on a single asset row. @private */
 type ActionType = "view" | "assign" | "update" | "edit";
 
 // ----------------------------------------------------------------------
@@ -97,8 +102,10 @@ type ActionType = "view" | "assign" | "update" | "edit";
 // ----------------------------------------------------------------------
 
 /**
- * Generates a 2-letter initial string from a name.
- * Handles special cases like "UNASSIGNED" or "IT Department".
+ * Extracts first letters of words to create a user avatar fallback.
+ *
+ * @param name - The full string to process.
+ * @returns {string} 2-letter uppercase initials.
  */
 function getInitials(name: string) {
   if (name === "UNASSIGNED") return "UA";
@@ -112,7 +119,10 @@ function getInitials(name: string) {
 }
 
 /**
- * Returns the appropriate Lucide icon for a given asset category.
+ * Strategy pattern to map asset categories to visual Lucide icons.
+ *
+ * @param category - Raw category string.
+ * @returns {JSX.Element} The corresponding Icon component.
  */
 const getAssetIcon = (category: string) => {
   switch (category.toLowerCase()) {
@@ -152,12 +162,12 @@ const getAssetIcon = (category: string) => {
 // ----------------------------------------------------------------------
 
 /**
- * Action menu component for individual rows.
- * Extracted to keep the column definition clean.
+ * Individual row action menu.
+ * @private
  */
 interface AssetActionsProps {
-  asset: AssetLegacy;
-  onAction: (action: ActionType, asset: AssetLegacy) => void;
+  asset: Asset;
+  onAction: (action: ActionType, asset: Asset) => void;
 }
 
 function AssetActions({ asset, onAction }: AssetActionsProps) {
@@ -211,6 +221,11 @@ function AssetActions({ asset, onAction }: AssetActionsProps) {
 // Main Component
 // ----------------------------------------------------------------------
 
+/**
+ * Main IT Inventory Table.
+ * Uses @tanstack/react-table for core logic and provides custom IT-specific
+ * features like automatic column toggling based on hardware categories.
+ */
 export function DataTable({
   data: initialData,
   title,
@@ -218,14 +233,21 @@ export function DataTable({
   renderToolbarLeft: externalToolbarLeft,
   renderCustomActions: externalCustomActions,
 }: {
-  data: AssetLegacy[];
+  data: Asset[];
   title?: React.ReactNode;
   description?: React.ReactNode;
-  renderToolbarLeft?: (table: any) => React.ReactNode;
-  renderCustomActions?: (table: any) => React.ReactNode;
+  renderToolbarLeft?: (
+    table: ReturnType<typeof useReactTable<Asset>>
+  ) => React.ReactNode;
+  renderCustomActions?: (
+    table: ReturnType<typeof useReactTable<Asset>>
+  ) => React.ReactNode;
 }) {
-  // --- State Managment ---
-  const [tab, setTab] = React.useState("all");
+  // Sync table filters/pagination with URL via custom hook
+  const { params, setParams } = useTableParams();
+  const tab = params.tab;
+
+  // React-Table standard states
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -233,15 +255,9 @@ export function DataTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
 
-  // Action Dialog States
-  const [selectedAsset, setSelectedAsset] = React.useState<AssetLegacy | null>(
-    null
-  );
+  // UI state for modals and sheets
+  const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null);
   const [activeAction, setActiveAction] = React.useState<ActionType | null>(
     null
   );
@@ -249,82 +265,78 @@ export function DataTable({
     "assign" | "update" | "delete" | null
   >(null);
 
-  // Reset row selection and pagination when tab filters change
+  /** Clear selections when switching between "Assigned" and "Retired" tabs. */
   React.useEffect(() => {
     setRowSelection({});
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [tab]);
 
-  // Column Schema Definition
+  /**
+   * Dictionary mapping asset categories to the specific technical columns they use.
+   * This drives the automated UI hiding logic.
+   */
   const CATEGORY_COLUMN_SCHEMA: Record<string, string[]> = React.useMemo(
     () => ({
-      Laptop: [
-        "Warranty Expiry",
-        "CPU",
-        "RAM",
-        "Storage",
-        "USB-A Ports",
-        "USB-C Ports",
+      laptop: [
+        "warrantyexpiry",
+        "cpu",
+        "ram",
+        "storage",
+        "usb-aports",
+        "usb-cports",
       ],
-      Desktop: [
-        "Warranty Expiry",
-        "CPU",
-        "RAM",
-        "Storage",
-        "Dedicated GPU",
-        "USB-A Ports",
-        "USB-C Ports",
+      desktop: [
+        "warrantyexpiry",
+        "cpu",
+        "ram",
+        "storage",
+        "dedicatedgpu",
+        "usb-aports",
+        "usb-cports",
       ],
-      Monitor: ["Dimensions", "Resolution", "Refresh Rate"],
-      Docking: ["USB-A Ports", "USB-C Ports"],
-      Headset: [], // Only standard columns
-      Smartphone: ["Storage"],
-      Tablet: ["Storage"],
-      Server: ["Warranty Expiry", "CPU", "RAM", "Storage"],
-      Printer: [],
-      // Default fallback for others
+      monitor: ["dimensions", "resolution", "refreshhertz"],
+      docking: ["usb-aports", "usb-cports"],
+      server: ["warrantyexpiry", "cpu", "ram", "storage"],
+      smartphone: ["storage"],
+      tablet: ["storage"],
     }),
     []
   );
 
-  // Auto-hide columns based on Category Schema
+  /**
+   * Adaptive Header Logic:
+   * If the data set only contains one type (e.g. all Laptops), automatically
+   * show CPU/RAM/Warranty columns. If it's a mixed view, hide all specs to avoid
+   * jagged/empty tables.
+   */
   React.useEffect(() => {
     if (!initialData.length) return;
 
     // 1. Detect if we are viewing a Single Category or Mixed
     const uniqueCategories = Array.from(
-      new Set(initialData.map((item) => item.Category))
+      new Set(initialData.map((item) => item.category.toLowerCase()))
     );
     const isSingleCategory = uniqueCategories.length === 1;
     const currentCategory = isSingleCategory ? uniqueCategories[0] : null;
 
     // 2. Define all optional/spec columns that should be toggled
     const allSpecColumns = [
-      "Warranty Expiry",
-      "CPU",
-      "RAM",
-      "Storage",
-      "Dedicated GPU",
-      "USB-A Ports",
-      "USB-C Ports",
-      "Dimensions",
-      "Resolution",
-      "Refresh Rate",
+      "warrantyexpiry",
+      "cpu",
+      "ram",
+      "storage",
+      "dedicatedgpu",
+      "usb-aports",
+      "usb-cports",
+      "dimensions",
+      "resolution",
+      "refreshhertz",
     ];
 
     // 3. Determine which columns should be visible
-    let columnsToShow: string[] = [];
-
-    if (isSingleCategory && currentCategory) {
-      // If we have a schema for this category, use it. Otherwise, defaults (empty).
-      columnsToShow = CATEGORY_COLUMN_SCHEMA[currentCategory] || [];
-
-      // Special case: "Warranty Expiry" is generally useful, maybe keep it unless explicitly excluded?
-      // User asked for "schema/collection", so we'll stick strictly to the schema.
-    } else {
-      // Mixed / All Categories -> Hide all extended specs (User request: "return old columns")
-      columnsToShow = [];
-    }
+    const columnsToShow: string[] =
+      isSingleCategory && currentCategory
+        ? CATEGORY_COLUMN_SCHEMA[currentCategory] || []
+        : [];
 
     // 4. Update Visibility State
     setColumnVisibility((prev) => {
@@ -343,47 +355,43 @@ export function DataTable({
     });
   }, [initialData, CATEGORY_COLUMN_SCHEMA]);
 
+  /** Callback passed to individual rows to launch management dialogs. */
+  const handleAction = React.useCallback((action: ActionType, asset: Asset) => {
+    setSelectedAsset(asset);
+    setActiveAction(action);
+  }, []);
+
   /**
-   * Handler for triggering actions from the row menu.
+   * High-level filtering based on Tab status.
+   * Logic is derived from hardware 'state' and assignee status.
    */
-  const handleAction = React.useCallback(
-    (action: ActionType, asset: AssetLegacy) => {
-      setSelectedAsset(asset);
-      setActiveAction(action);
-    },
-    []
-  );
-
-  // --- Filtering Logic ---
-
   const filteredData = React.useMemo(() => {
     switch (tab) {
       case "active":
         return initialData.filter(
           (item) =>
-            item.Employee !== "UNASSIGNED" &&
-            item.State !== "BROKEN" &&
-            item.State !== "RETIRED"
+            item.employee !== "UNASSIGNED" &&
+            item.state !== "BROKEN" &&
+            item.state !== "RETIRED"
         );
       case "draft":
         return initialData.filter(
           (item) =>
-            item.Employee === "UNASSIGNED" &&
-            item.State !== "BROKEN" &&
-            item.State !== "RETIRED"
+            item.employee === "UNASSIGNED" &&
+            item.state !== "BROKEN" &&
+            item.state !== "RETIRED"
         );
       case "archived":
         return initialData.filter(
-          (item) => item.State === "BROKEN" || item.State === "RETIRED"
+          (item) => item.state === "BROKEN" || item.state === "RETIRED"
         );
       default:
         return initialData;
     }
   }, [initialData, tab]);
 
-  // --- Column Definitions ---
-
-  const columns = React.useMemo<ColumnDef<AssetLegacy>[]>(
+  // Define column definitions with custom renders for IT data (Avatars, Status Badges, etc)
+  const columns = React.useMemo<ColumnDef<Asset>[]>(
     () => [
       // Checkbox Column
       {
@@ -415,21 +423,21 @@ export function DataTable({
 
       // Asset Name Column
       {
-        accessorKey: "Asset",
-        accessorFn: (row) => `${row.Make} ${row.Model}`,
+        accessorKey: "asset",
+        accessorFn: (row) => `${row.make} ${row.model}`,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Asset" />
         ),
         cell: ({ row }) => {
-          const make = row.original.Make;
-          const model = row.original.Model;
-          const category = row.original.Category;
+          const make = row.original.make;
+          const model = row.original.model;
+          const category = row.original.category;
           return (
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground">
                 {getAssetIcon(category)}
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col text-left">
                 <span className="font-medium text-foreground">{make}</span>
                 <span className="text-xs text-muted-foreground">{model}</span>
               </div>
@@ -437,33 +445,33 @@ export function DataTable({
           );
         },
         sortingFn: (rowA, rowB) => {
-          const a = `${rowA.original.Make} ${rowA.original.Model}`;
-          const b = `${rowB.original.Make} ${rowB.original.Model}`;
+          const a = `${rowA.original.make} ${rowA.original.model}`;
+          const b = `${rowB.original.make} ${rowB.original.model}`;
           return a.localeCompare(b);
         },
       },
 
       // Category Column
       {
-        accessorKey: "Category",
+        accessorKey: "category",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Category" />
         ),
         cell: ({ row }) => (
           <Badge variant="secondary" className="font-normal">
-            {row.getValue("Category")}
+            {row.getValue("category")}
           </Badge>
         ),
       },
 
       // Service Tag Column
       {
-        accessorKey: "Service Tag",
+        accessorKey: "servicetag",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Service Tag" />
         ),
         cell: ({ row }) => {
-          const tag = row.getValue("Service Tag") as string;
+          const tag = row.getValue("servicetag") as string;
           return (
             <div className="flex items-center gap-2 group">
               <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
@@ -482,12 +490,12 @@ export function DataTable({
 
       // status Column
       {
-        accessorKey: "State",
+        accessorKey: "state",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Status" />
         ),
         cell: ({ row }) => {
-          const state = row.getValue("State") as string;
+          const state = row.getValue("state") as string;
           let className = "border-transparent";
           let icon = null;
 
@@ -518,12 +526,12 @@ export function DataTable({
 
       // Employee / Assignee Column
       {
-        accessorKey: "Employee",
+        accessorKey: "employee",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Assignee" />
         ),
         cell: ({ row }) => {
-          const employee = row.getValue("Employee") as string;
+          const employee = row.getValue("employee") as string;
 
           if (employee === "UNASSIGNED") {
             return (
@@ -539,7 +547,6 @@ export function DataTable({
               <Avatar className="h-8 w-8 border">
                 <AvatarImage
                   src={`https://api.dicebear.com/7.x/initials/svg?seed=${employee}`}
-                  alt={employee}
                 />
                 <AvatarFallback>{getInitials(employee)}</AvatarFallback>
               </Avatar>
@@ -551,88 +558,87 @@ export function DataTable({
 
       // Location Column
       {
-        accessorKey: "Location",
+        accessorKey: "location",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Location" />
         ),
         cell: ({ row }) => (
-          <div className="flex items-center text-sm text-muted-foreground">
-            {row.getValue("Location")}
+          <div className="text-sm text-muted-foreground text-left">
+            {row.getValue("location")}
           </div>
         ),
       },
 
-      // --- Dynamic / Optional Columns ---
-
+      // Technical Extensions (Shown dynamically)
       {
-        accessorKey: "Warranty Expiry",
+        accessorKey: "warrantyexpiry",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Warranty" />
         ),
-        cell: ({ row }) => row.getValue("Warranty Expiry"),
+        cell: ({ row }) => row.getValue("warrantyexpiry"),
       },
       {
-        accessorKey: "CPU",
+        accessorKey: "cpu",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="CPU" />
         ),
-        cell: ({ row }) => row.getValue("CPU"),
+        cell: ({ row }) => row.getValue("cpu"),
       },
       {
-        accessorKey: "RAM",
+        accessorKey: "ram",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="RAM" />
         ),
-        cell: ({ row }) => row.getValue("RAM"),
+        cell: ({ row }) => row.getValue("ram"),
       },
       {
-        accessorKey: "Storage",
+        accessorKey: "storage",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Storage" />
         ),
-        cell: ({ row }) => row.getValue("Storage"),
+        cell: ({ row }) => row.getValue("storage"),
       },
       {
-        accessorKey: "Dedicated GPU",
+        accessorKey: "dedicatedgpu",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="GPU" />
         ),
-        cell: ({ row }) => row.getValue("Dedicated GPU"),
+        cell: ({ row }) => row.getValue("dedicatedgpu"),
       },
       {
-        accessorKey: "USB-A Ports",
+        accessorKey: "usb-aports",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="USB-A" />
         ),
-        cell: ({ row }) => row.getValue("USB-A Ports"),
+        cell: ({ row }) => row.getValue("usb-aports"),
       },
       {
-        accessorKey: "USB-C Ports",
+        accessorKey: "usb-cports",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="USB-C" />
         ),
-        cell: ({ row }) => row.getValue("USB-C Ports"),
+        cell: ({ row }) => row.getValue("usb-cports"),
       },
       {
-        accessorKey: "Dimensions",
+        accessorKey: "dimensions",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Dims" />
         ),
-        cell: ({ row }) => row.getValue("Dimensions"),
+        cell: ({ row }) => row.getValue("dimensions"),
       },
       {
-        accessorKey: "Resolution",
+        accessorKey: "resolution",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Res" />
         ),
-        cell: ({ row }) => row.getValue("Resolution"),
+        cell: ({ row }) => row.getValue("resolution"),
       },
       {
-        accessorKey: "Refresh Rate",
+        accessorKey: "refreshhertz",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Hz" />
         ),
-        cell: ({ row }) => row.getValue("Refresh Rate"),
+        cell: ({ row }) => row.getValue("refreshhertz"),
       },
 
       // Actions Column
@@ -650,32 +656,34 @@ export function DataTable({
 
   // --- Table Instance ---
 
-  // --- Table Instance ---
-
   // Memoize table options to avoid unnecessary re-renders and lint warnings
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    getRowId: (row) => row["Service Tag"], // Use Service Tag as a stable unique ID
+    getRowId: (row) => row.servicetag, // Use Service Tag as a stable unique ID
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
+    // Sync pagination with URL params
+    manualPagination: true,
+    pageCount: Math.ceil(filteredData.length / params.pageSize),
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
-      pagination,
+      pagination: {
+        pageIndex: (params.page || 1) - 1,
+        pageSize: params.pageSize || 10,
+      },
     },
   });
 
@@ -683,12 +691,16 @@ export function DataTable({
 
   return (
     <div className="space-y-4">
-      <Tabs value={tab} className="w-full" onValueChange={setTab}>
+      <Tabs
+        value={tab}
+        className="w-full"
+        onValueChange={(v) => setParams({ tab: v, page: 1 })}
+      >
         <BaseDataTable
           table={table}
           data={filteredData}
           columns={columns}
-          searchKey="Service Tag"
+          searchKey="servicetag"
           renderToolbarLeft={() => (
             <div className="flex items-center gap-3">
               {externalToolbarLeft?.(table)}
@@ -758,7 +770,7 @@ export function DataTable({
         />
       </Tabs>
 
-      {/* Action Dialogs */}
+      {/* Orchestration for individual row actions */}
       <ViewAssetSheet
         asset={selectedAsset}
         open={activeAction === "view"}
@@ -780,7 +792,7 @@ export function DataTable({
         onOpenChange={(open) => !open && setActiveAction(null)}
       />
 
-      {/* Bulk Action Dialogs */}
+      {/* Orchestration for multi-select batch actions */}
       <BulkAssignDialog
         assets={table
           .getFilteredSelectedRowModel()

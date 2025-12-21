@@ -1,0 +1,22 @@
+[
+  {
+    "id": "T001",
+    "name": "Alex Tech",
+    "specialty": "Hardware"
+  },
+  {
+    "id": "T002",
+    "name": "Sarah Repair",
+    "specialty": "Software"
+  },
+  {
+    "id": "T003",
+    "name": "Mike Fix",
+    "specialty": "Network"
+  },
+  {
+    "id": "T004",
+    "name": "Jessica Diagnostics",
+    "specialty": "General"
+  }
+]

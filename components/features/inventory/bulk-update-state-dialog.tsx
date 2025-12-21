@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Info, CheckCircle2, Sparkles, XCircle, RefreshCw, FileText } from "lucide-react";
+import {
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  Sparkles,
+  XCircle,
+  RefreshCw,
+  FileText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -22,13 +30,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface BulkUpdateStateDialogProps {
-  assets: AssetLegacy[];
+  assets: Asset[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -66,7 +74,10 @@ export function BulkUpdateStateDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-[450px] p-0 flex flex-col">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-[450px] p-0 flex flex-col"
+      >
         <SheetHeader className="p-6 border-b bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500 shadow-sm">
@@ -75,18 +86,30 @@ export function BulkUpdateStateDialog({
             <div>
               <SheetTitle>Bulk Update Status</SheetTitle>
               <SheetDescription>
-                Change the state of <span className="font-semibold text-foreground">{assets.length}</span> selected assets.
+                Change the state of{" "}
+                <span className="font-semibold text-foreground">
+                  {assets.length}
+                </span>{" "}
+                selected assets.
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
 
-        <form className="flex-1 flex flex-col h-full overflow-hidden" onSubmit={(e) => { e.preventDefault(); handleConfirm(); }}>
+        <form
+          className="flex-1 flex flex-col h-full overflow-hidden"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleConfirm();
+          }}
+        >
           <ScrollArea className="flex-1">
             <div className="p-6 space-y-8">
               <Alert className="bg-muted/40 border-muted">
                 <Info className="h-4 w-4" />
-                <AlertTitle className="text-sm font-bold">Selection Summary</AlertTitle>
+                <AlertTitle className="text-sm font-bold">
+                  Selection Summary
+                </AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground">
                   You are updating {assets.length} items. This will standardize
                   their status across the entire system.
@@ -97,7 +120,9 @@ export function BulkUpdateStateDialog({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <RefreshCw className="h-4 w-4 text-primary" />
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">New Status</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      New Status
+                    </Label>
                   </div>
                   <Select onValueChange={setState} value={state}>
                     <SelectTrigger className="h-11">
@@ -133,12 +158,15 @@ export function BulkUpdateStateDialog({
                 </div>
 
                 {isDisposal && (
-                  <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 text-destructive">
+                  <Alert
+                    variant="destructive"
+                    className="bg-destructive/5 border-destructive/20 text-destructive"
+                  >
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle className="font-bold">Warning</AlertTitle>
                     <AlertDescription className="text-xs opacity-90">
-                      Marking these {assets.length} assets as {state} may remove them
-                      from active inventory lists and affect reporting.
+                      Marking these {assets.length} assets as {state} may remove
+                      them from active inventory lists and affect reporting.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -146,7 +174,12 @@ export function BulkUpdateStateDialog({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <Label htmlFor="reason" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status Change Reason</Label>
+                    <Label
+                      htmlFor="reason"
+                      className="text-xs font-bold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Status Change Reason
+                    </Label>
                   </div>
                   <Textarea
                     id="reason"
@@ -155,7 +188,9 @@ export function BulkUpdateStateDialog({
                     onChange={(e) => setReason(e.target.value)}
                     className={cn(
                       "min-h-[150px] resize-none focus:ring-1",
-                      !reason && state && "border-destructive/50 focus:ring-destructive/30 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
+                      !reason &&
+                        state &&
+                        "border-destructive/50 focus:ring-destructive/30 shadow-[0_0_0_1px_rgba(239,68,68,0.1)]"
                     )}
                   />
                 </div>
@@ -164,7 +199,12 @@ export function BulkUpdateStateDialog({
           </ScrollArea>
 
           <SheetFooter className="p-6 border-t bg-muted/10 items-center justify-end gap-3 flex-row">
-            <Button variant="outline" type="button" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 sm:flex-none"
+            >
               Cancel
             </Button>
             <Button

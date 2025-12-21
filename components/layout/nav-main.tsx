@@ -1,11 +1,14 @@
+/**
+ * @file nav-main.tsx
+ * @description Primary navigation section with animated menu items using Framer Motion.
+ * Includes Quick Adjust CTA button and notifications trigger.
+ * @path /components/layout/nav-main.tsx
+ */
+
 "use client";
 
 import Link from "next/link";
-import {
-  IconMail,
-  IconSearch,
-  type Icon,
-} from "@tabler/icons-react";
+import { IconMail, IconSearch, type Icon } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -74,11 +77,15 @@ export function NavMain({
               background="var(--primary)"
               className={cn(
                 "h-8 transition-all duration-300 ease-in-out text-primary-foreground hover:scale-[1.02] active:scale-95",
-                isCollapsed ? "w-8 px-0 justify-center" : "flex-1 px-3 justify-start"
+                isCollapsed
+                  ? "w-8 px-0 justify-center"
+                  : "flex-1 px-3 justify-start"
               )}
             >
               <IconSearch className="size-4 shrink-0" />
-              {!isCollapsed && <span className="ml-2 text-sm font-medium">Quick Adjust</span>}
+              {!isCollapsed && (
+                <span className="ml-2 text-sm font-medium">Quick Adjust</span>
+              )}
             </ShimmerButton>
             <Button
               size="icon"

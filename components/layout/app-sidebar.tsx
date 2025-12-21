@@ -1,3 +1,10 @@
+/**
+ * @file app-sidebar.tsx
+ * @description Main application sidebar containing navigation, quick actions, and user menu.
+ * Manages keyboard shortcuts (Ctrl+Space) for quick inventory adjustment.
+ * @path /components/layout/app-sidebar.tsx
+ */
+
 "use client";
 
 import * as React from "react";
@@ -13,6 +20,7 @@ import {
   IconHistory,
   IconPencil,
   IconTool,
+  IconCpu,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -43,13 +51,18 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Inventory Master",
-      url: "/inventory-master",
+      title: "Inventory",
+      url: "/inventory",
       icon: IconBox,
     },
     {
-      title: "Deployment Operations",
-      url: "/deployment-operations",
+      title: "Models",
+      url: "/models",
+      icon: IconCpu,
+    },
+    {
+      title: "Deployment",
+      url: "/deployment",
       icon: IconServer,
     },
     {
@@ -104,11 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, []);
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="glass border-r-0 border-primary/10"
-      {...props}
-    >
+    <Sidebar collapsible="icon" className="glass border-r-0" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

@@ -35,13 +35,12 @@ import {
 } from "@/components/ui/popover";
 import { createMaintenanceRequest } from "@/services/maintenance-service";
 import {
-  getAssetByServiceTag,
   searchAssets,
+  getAssetByServiceTag,
 } from "@/services/inventory-service";
-import type {
-  MaintenanceCategory,
-  MaintenancePriority,
-} from "@/lib/maintenance-types";
+import techniciansData from "@/data/technicians.json";
+import { logActivity } from "@/services/dashboard-service";
+import type { MaintenanceCategory, MaintenancePriority } from "@/lib/types";
 import {
   IconLoader2,
   IconTag,
@@ -63,6 +62,7 @@ import {
   IconCircleCheck,
   IconCircleDot,
   IconCircle,
+  IconFileText,
 } from "@tabler/icons-react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +84,12 @@ interface OwnerHistory {
   date: string;
 }
 
+interface Technician {
+  id: string;
+  name: string;
+  specialty?: string;
+}
+
 export function MaintenanceDialog({
   open,
   onOpenChange,
@@ -94,6 +100,12 @@ export function MaintenanceDialog({
   const [history, setHistory] = React.useState<OwnerHistory[]>([]);
   const [openCombobox, setOpenCombobox] = React.useState(false);
   const [suggestions, setSuggestions] = React.useState<Asset[]>([]);
+
+  const [openTechnicianCombobox, setOpenTechnicianCombobox] =
+    React.useState(false);
+  const [technicianSuggestions, setTechnicianSuggestions] = React.useState<
+    Technician[]
+  >([]);
 
   const [formData, setFormData] = React.useState({
     assetTag: "",
@@ -107,6 +119,7 @@ export function MaintenanceDialog({
     technician: "",
     scheduledDate: "",
     estimatedCost: "",
+    notes: "",
   });
 
   // Handle service tag search and suggestions
@@ -181,6 +194,20 @@ export function MaintenanceDialog({
     return () => clearTimeout(timer);
   }, [formData.assetTag, suggestions]);
 
+  // Technician autofill logic
+  React.useEffect(() => {
+    if (!formData.technician) {
+      setTechnicianSuggestions(techniciansData);
+      return;
+    }
+
+    // Simple client-side filtering
+    const filtered = techniciansData.filter((tech) =>
+      tech.name.toLowerCase().includes(formData.technician.toLowerCase())
+    );
+    setTechnicianSuggestions(filtered);
+  }, [formData.technician]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -202,6 +229,14 @@ export function MaintenanceDialog({
         estimatedCost: formData.estimatedCost
           ? parseFloat(formData.estimatedCost)
           : undefined,
+        notes: formData.notes ? [formData.notes] : [],
+      });
+
+      await logActivity({
+        user: { name: "Current User", avatar: "", initials: "ME" },
+        action: "maintenance_requested",
+        target: formData.assetTag,
+        comment: formData.notes,
       });
 
       // Reset form
@@ -217,6 +252,7 @@ export function MaintenanceDialog({
         technician: "",
         scheduledDate: "",
         estimatedCost: "",
+        notes: "",
       });
       setHistory([]);
 
@@ -238,6 +274,15 @@ export function MaintenanceDialog({
       <SheetContent
         side="right"
         className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl overflow-hidden"
+        onInteractOutside={(e) => {
+          // Prevent sheet from closing when interacting with portal-based elements
+          // like Popovers, Comboboxes, and Selects that render in portals
+          e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          // Prevent sheet from closing when clicking on portal-based elements
+          e.preventDefault();
+        }}
       >
         <form
           onSubmit={handleSubmit}
@@ -615,28 +660,81 @@ export function MaintenanceDialog({
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                    <div className="space-y-2 flex flex-col">
                       <Label
                         htmlFor="technician"
                         className="text-sm font-semibold"
                       >
                         Assign Technician
                       </Label>
-                      <div className="relative">
-                        <IconUser className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="technician"
-                          placeholder="Technician name"
-                          value={formData.technician}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              technician: e.target.value,
-                            })
-                          }
-                          className="pl-9 transition-all focus:ring-2 focus:ring-sky-500/20 h-10"
-                        />
-                      </div>
+                      <Popover
+                        open={openTechnicianCombobox}
+                        onOpenChange={setOpenTechnicianCombobox}
+                      >
+                        <PopoverTrigger asChild>
+                          <div className="relative">
+                            <IconUser className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openTechnicianCombobox}
+                              className="w-full pl-9 justify-between font-normal bg-background/50 border-muted-foreground/20 text-left h-10"
+                            >
+                              {formData.technician || "Technician name"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search technician..."
+                              value={formData.technician}
+                              onValueChange={(val) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  technician: val,
+                                }))
+                              }
+                            />
+                            <CommandList>
+                              <CommandEmpty>No technician found.</CommandEmpty>
+                              <CommandGroup>
+                                {technicianSuggestions.map((tech) => (
+                                  <CommandItem
+                                    key={tech.id}
+                                    value={tech.name}
+                                    onSelect={() => {
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        technician: tech.name,
+                                      }));
+                                      setOpenTechnicianCombobox(false);
+                                    }}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-bold">
+                                        {tech.name}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {tech.specialty}
+                                      </span>
+                                    </div>
+                                    <Check
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        formData.technician === tech.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     <div className="space-y-2">
@@ -686,6 +784,31 @@ export function MaintenanceDialog({
                           })
                         }
                         className="pl-9 transition-all focus:ring-2 focus:ring-sky-500/20 h-10 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="maintenance-notes"
+                      className="text-sm font-semibold"
+                    >
+                      Additional Notes (Optional)
+                    </Label>
+                    <div className="relative">
+                      <IconFileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+                      <Textarea
+                        id="maintenance-notes"
+                        placeholder="Internal comments or deployment notes..."
+                        value={formData.notes}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            notes: e.target.value,
+                          })
+                        }
+                        rows={3}
+                        className="pl-9 resize-none transition-all focus:ring-2 focus:ring-sky-500/20"
                       />
                     </div>
                   </div>

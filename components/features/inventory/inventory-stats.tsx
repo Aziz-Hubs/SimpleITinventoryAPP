@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 
 interface InventoryStatsProps {
-  assets: AssetLegacy[];
+  assets: Asset[];
+  totalAssetCount?: number;
 }
 
 const containerVariants = {
@@ -43,10 +44,13 @@ const itemVariants = {
   },
 };
 
-export function InventoryStats({ assets }: InventoryStatsProps) {
+export function InventoryStats({
+  assets,
+  totalAssetCount,
+}: InventoryStatsProps) {
   // 1. Calculate Utilization
   const assignedCount = assets.filter(
-    (a) => a.Employee !== "UNASSIGNED"
+    (a) => a.employee && a.employee !== "UNASSIGNED"
   ).length;
   const utilizationRate =
     Math.round((assignedCount / assets.length) * 100) || 0;
@@ -80,13 +84,13 @@ export function InventoryStats({ assets }: InventoryStatsProps) {
     }
   };
   const totalValue = assets.reduce(
-    (acc, curr) => acc + getValue(curr.Category),
+    (acc, curr) => acc + getValue(curr.category),
     0
   );
 
   // 3. Category Breakdown
   const categories = assets.reduce((acc, curr) => {
-    const category = curr.Category || "Unknown";
+    const category = curr.category || "Unknown";
     acc[category] = (acc[category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -135,7 +139,7 @@ export function InventoryStats({ assets }: InventoryStatsProps) {
                   Tracked Count
                 </span>
                 <span className="text-lg font-bold tracking-tight">
-                  {assets.length}{" "}
+                  {totalAssetCount ?? assets.length}{" "}
                   <small className="text-[10px] font-normal text-muted-foreground uppercase">
                     Items
                   </small>

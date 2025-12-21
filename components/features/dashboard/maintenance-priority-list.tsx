@@ -1,12 +1,12 @@
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, ArrowRight, MapPin, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MaintenancePriorityListProps {
-  assets: AssetLegacy[];
-  onViewDetails: (asset: AssetLegacy) => void;
+  assets: Asset[];
+  onViewDetails: (asset: Asset) => void;
 }
 
 export function MaintenancePriorityList({
@@ -14,7 +14,7 @@ export function MaintenancePriorityList({
   onViewDetails,
 }: MaintenancePriorityListProps) {
   const maintenanceItems = assets.filter((a) =>
-    ["BROKEN", "FAIR"].includes(a.State)
+    ["BROKEN", "FAIR"].includes(a.state.toUpperCase())
   );
 
   if (maintenanceItems.length === 0) {
@@ -47,14 +47,21 @@ export function MaintenancePriorityList({
             variant="outline"
             className="bg-red-500/5 text-red-600 border-red-200"
           >
-            {maintenanceItems.filter((i) => i.State === "BROKEN").length}{" "}
+            {
+              maintenanceItems.filter((i) => i.state.toUpperCase() === "BROKEN")
+                .length
+            }{" "}
             Critical
           </Badge>
           <Badge
             variant="outline"
             className="bg-yellow-500/5 text-yellow-600 border-yellow-200"
           >
-            {maintenanceItems.filter((i) => i.State === "FAIR").length} Warnings
+            {
+              maintenanceItems.filter((i) => i.state.toUpperCase() === "FAIR")
+                .length
+            }{" "}
+            Warnings
           </Badge>
         </div>
       </div>
@@ -69,7 +76,7 @@ export function MaintenancePriorityList({
               <div className="flex items-start gap-4">
                 <div
                   className={`mt-1 p-2 rounded-lg shrink-0 ${
-                    item.State === "BROKEN"
+                    item.state.toUpperCase() === "BROKEN"
                       ? "bg-red-500/10 text-red-500"
                       : "bg-yellow-500/10 text-yellow-600"
                   }`}
@@ -80,17 +87,17 @@ export function MaintenancePriorityList({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-bold text-base tracking-tight">
-                      {item.Make} {item.Model}
+                      {item.make} {item.model}
                     </h4>
                     <Badge
                       variant="outline"
                       className={`uppercase text-[10px] font-bold tracking-wider ${
-                        item.State === "BROKEN"
+                        item.state.toUpperCase() === "BROKEN"
                           ? "border-red-200 text-red-700 bg-red-50"
                           : "border-yellow-200 text-yellow-700 bg-yellow-50"
                       }`}
                     >
-                      {item.State}
+                      {item.state}
                     </Badge>
                   </div>
 
@@ -98,12 +105,12 @@ export function MaintenancePriorityList({
                     <div className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded-md">
                       <Tag className="h-3 w-3" />
                       <span className="font-mono font-medium">
-                        {item["Service Tag"]}
+                        {item.servicetag}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      <span>{item.Location}</span>
+                      <span>{item.location}</span>
                     </div>
                   </div>
                 </div>

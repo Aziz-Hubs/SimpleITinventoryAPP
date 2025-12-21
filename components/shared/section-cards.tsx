@@ -1,7 +1,14 @@
+/**
+ * @file section-cards.tsx
+ * @description Interactive dashboard header component.
+ * Displays high-level KPIs as animated Glassmorphism cards. Each card acts as a
+ * trigger to open a detailed drill-down modal containing specific charts.
+ * @path /components/shared/section-cards.tsx
+ */
+
 "use client";
 
 import { useState } from "react";
-
 import { AlertCircle, Box, CheckCircle2, Server } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -13,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DashboardStats, AssetLegacy } from "@/lib/types";
+import { DashboardStats, Asset } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -28,11 +35,17 @@ import {
 import { MaintenancePriorityList } from "@/components/features/dashboard/maintenance-priority-list";
 import { ViewAssetSheet } from "@/components/features/inventory/view-asset-sheet";
 
+/**
+ * Props for the SectionCards overview group.
+ */
 interface SectionCardsProps {
+  /** Aggregated KPI data. */
   stats: DashboardStats;
-  assets?: AssetLegacy[];
+  /** Raw assets for populating the drill-down charts. */
+  assets?: Asset[];
 }
 
+/** Animation variants for the stagger entrance effect. */
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -43,6 +56,7 @@ const containerVariants = {
   },
 };
 
+/** Individual card "pop-in" animation. */
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
@@ -56,15 +70,23 @@ const itemVariants = {
   },
 };
 
+/**
+ * KPI Dashboard Header.
+ * Renders a responsive grid of 4 cards: Total Assets, Deployment Rate,
+ * Ready for Issue, and Maintenance status.
+ */
 export function SectionCards({
   stats,
   assets: initialAssets,
 }: SectionCardsProps) {
   const assets = initialAssets || [];
+
+  // Drill-down UI state
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [viewAsset, setViewAsset] = useState<AssetLegacy | null>(null);
+  const [viewAsset, setViewAsset] = useState<Asset | null>(null);
   const [isViewAssetSheetOpen, setIsViewAssetSheetOpen] = useState(false);
 
+  /** Maps internal card IDs to human-readable modal titles. */
   const getDialogTitle = () => {
     switch (selectedCard) {
       case "total":
@@ -80,6 +102,7 @@ export function SectionCards({
     }
   };
 
+  /** Orchestrates which detail view to render inside the drill-down modal. */
   const renderChart = () => {
     switch (selectedCard) {
       case "total":
@@ -111,6 +134,7 @@ export function SectionCards({
         animate="visible"
         className="grid grid-cols-1 gap-4 *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4"
       >
+        {/* Total Assets Card */}
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -5 }}
@@ -121,10 +145,10 @@ export function SectionCards({
             onClick={() => setSelectedCard("total")}
           >
             <CardHeader>
-              <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80 font-medium">
+              <CardDescription className="text-indigo-600/80 dark:text-indigo-400/80 font-medium text-left">
                 Total Assets
               </CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-left">
                 {stats.totalAssets.count}
               </CardTitle>
               <CardAction>
@@ -142,6 +166,7 @@ export function SectionCards({
           </Card>
         </motion.div>
 
+        {/* Deployment Rate Card */}
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -5 }}
@@ -152,10 +177,10 @@ export function SectionCards({
             onClick={() => setSelectedCard("deployment")}
           >
             <CardHeader>
-              <CardDescription className="text-emerald-600/80 dark:text-emerald-400/80 font-medium">
+              <CardDescription className="text-emerald-600/80 dark:text-emerald-400/80 font-medium text-left">
                 Deployment Rate
               </CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-left">
                 {stats.deployment.percentage}%
               </CardTitle>
               <CardAction>
@@ -172,6 +197,7 @@ export function SectionCards({
           </Card>
         </motion.div>
 
+        {/* Ready for Issue Card */}
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -5 }}
@@ -182,10 +208,10 @@ export function SectionCards({
             onClick={() => setSelectedCard("stock")}
           >
             <CardHeader>
-              <CardDescription className="text-sky-600/80 dark:text-sky-400/80 font-medium">
+              <CardDescription className="text-sky-600/80 dark:text-sky-400/80 font-medium text-left">
                 Ready for Issue
               </CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-left">
                 {stats.stock.ready}
               </CardTitle>
               <CardAction>
@@ -202,6 +228,7 @@ export function SectionCards({
           </Card>
         </motion.div>
 
+        {/* Maintenance / Requires Attention Card */}
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -5 }}
@@ -212,10 +239,10 @@ export function SectionCards({
             onClick={() => setSelectedCard("maintenance")}
           >
             <CardHeader>
-              <CardDescription className="text-rose-600/80 dark:text-rose-400/80 font-medium">
+              <CardDescription className="text-rose-600/80 dark:text-rose-400/80 font-medium text-left">
                 Requires Attention
               </CardDescription>
-              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-left">
                 {stats.maintenance.count}
               </CardTitle>
               <CardAction>
@@ -233,13 +260,14 @@ export function SectionCards({
         </motion.div>
       </motion.div>
 
+      {/* Detail Drill-down Modal */}
       <Dialog
         open={!!selectedCard}
         onOpenChange={(open) => !open && setSelectedCard(null)}
       >
         <DialogContent className="max-w-3xl flex flex-col p-6">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-2xl font-bold tracking-tight">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-left">
               {getDialogTitle()}
             </DialogTitle>
           </DialogHeader>
@@ -249,6 +277,7 @@ export function SectionCards({
         </DialogContent>
       </Dialog>
 
+      {/* Asset Side Sheet (Launched from Maintenance Priority List) */}
       <ViewAssetSheet
         asset={viewAsset}
         open={isViewAssetSheetOpen}

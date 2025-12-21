@@ -1,3 +1,9 @@
+/**
+ * @file activity-categories.ts
+ * @description Defines the categorization system for activity logs including icons, colors, and matching logic.
+ * @path /lib/activity-categories.ts
+ */
+
 import {
     UserPlus,
     Settings2,
@@ -5,13 +11,6 @@ import {
     Shield,
     Activity as ActivityIcon,
 } from "lucide-react";
-
-/**
- * Activity Log Categories
- * 
- * This file contains the categorization system for activity logs.
- * Categories help organize and filter activities based on their type.
- */
 
 export type ActivityCategory =
     | "assignment"

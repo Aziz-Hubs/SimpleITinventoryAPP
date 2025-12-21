@@ -1,3 +1,9 @@
+/**
+ * @file nav-secondary.tsx
+ * @description Secondary navigation group for settings and help links, positioned at bottom of sidebar.
+ * @path /components/layout/nav-secondary.tsx
+ */
+
 "use client";
 
 import Link from "next/link";

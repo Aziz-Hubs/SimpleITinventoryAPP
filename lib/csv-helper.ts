@@ -1,3 +1,10 @@
+/**
+ * @file csv-helper.ts
+ * @description Server-side utility for converting CSV files to JSON format.
+ * Uses Node.js fs module for file operations.
+ * @path /lib/csv-helper.ts
+ */
+
 import fs from 'fs';
 
 export interface CsvConversionResult {

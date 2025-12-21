@@ -1,0 +1,393 @@
+{
+  "schema": {
+    "description": "Schema for Employee object",
+    "fields": {
+      "id": {
+        "type": "string",
+        "description": "Unique identifier, e.g., EMP-001"
+      },
+      "fullName": {
+        "type": "string",
+        "description": "Full name of the employee"
+      },
+      "email": {
+        "type": "string",
+        "description": "Contact email address"
+      },
+      "department": {
+        "type": "string",
+        "description": "Department the employee belongs to"
+      },
+      "position": {
+        "type": "string",
+        "description": "Job title or role"
+      }
+    }
+  },
+  "employees": [
+    {
+      "id": "EMP-001",
+      "fullName": "Abdullah, Laila",
+      "email": "labdullah@acuative.com",
+      "department": "VND",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-002",
+      "fullName": "Abu Al Rous, Mohammed",
+      "email": "mabualrous@acuative.com",
+      "department": "RES",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-003",
+      "fullName": "Abu Ghalyoun, Hasan",
+      "email": "habughalyoun@acuative.com",
+      "department": "ISM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-004",
+      "fullName": "Abu Hajer, Ibrahim",
+      "email": "iabuhajer@acuative.com",
+      "department": "NOC",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-005",
+      "fullName": "Abujebbeh, Muhammad",
+      "email": "mabujebbeh@acuative.com",
+      "department": "FIN",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-006",
+      "fullName": "Abulaban, Hebah",
+      "email": "habulaban@acuative.com",
+      "department": "MKT",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-007",
+      "fullName": "Al Nabulsi, Sana'a",
+      "email": "salnabulsi@acuative.com",
+      "department": "FIN",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-008",
+      "fullName": "Alfaraeh, Mohammad",
+      "email": "malfaraeh@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-009",
+      "fullName": "Alfaraeh, Osama",
+      "email": "oalfaraeh@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-010",
+      "fullName": "Alfararjeh, Islam",
+      "email": "ialfararjeh@acuative.com",
+      "department": "RES",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-011",
+      "fullName": "Alghzawi, Wesam",
+      "email": "walghzawi@acuative.com",
+      "department": "IMP",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-012",
+      "fullName": "Alkhatib, Emad",
+      "email": "ealkhatib@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-013",
+      "fullName": "Alkhatib, Omar",
+      "email": "oalkhatib@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-014",
+      "fullName": "Almousa, Mohammad",
+      "email": "malmousa@acuative.com",
+      "department": "FIN",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-015",
+      "fullName": "Alrifai, Jalal",
+      "email": "jalrifai@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-016",
+      "fullName": "Alshibly, Mohmmad",
+      "email": "malshibly@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-017",
+      "fullName": "Alslaihat, Qusai",
+      "email": "qalslaihat@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-018",
+      "fullName": "Alyasjeen, Aws",
+      "email": "aalyasjeen@acuative.com",
+      "department": "FSO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-019",
+      "fullName": "Aqra, Huthaifa",
+      "email": "haqra@acuative.com",
+      "department": "ENG",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-020",
+      "fullName": "Asali, Mohamed",
+      "email": "masali@acuative.com",
+      "department": "FIN",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-021",
+      "fullName": "Ashour, Roa'a",
+      "email": "rashour@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-022",
+      "fullName": "Atiyat, Sultan",
+      "email": "satiyat@acuative.com",
+      "department": "RES",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-023",
+      "fullName": "Ghabboun, Abdulrahman",
+      "email": "aghabboun@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-024",
+      "fullName": "Gharaibeh, Ahmad",
+      "email": "agharaibeh@acuative.com",
+      "department": "ISM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-025",
+      "fullName": "Hasan, Abdallah",
+      "email": "ahasan@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-026",
+      "fullName": "Hasan, Abedalaziz",
+      "email": "aohasan@acuative.com",
+      "department": "ITM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-027",
+      "fullName": "Hasan, Feras",
+      "email": "fhasan@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-028",
+      "fullName": "Hussein, Majd",
+      "email": "mhussein@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-029",
+      "fullName": "Issa, Mohammad",
+      "email": "missa@acuative.com",
+      "department": "VND",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-030",
+      "fullName": "Ja'ara, Ahmad",
+      "email": "ajaara@acuative.com",
+      "department": "ENG",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-031",
+      "fullName": "Jaber, Hamzeh",
+      "email": "hjaber@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-032",
+      "fullName": "Jad Allah, Haitham",
+      "email": "hjadallah@acuative.com",
+      "department": "RES",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-033",
+      "fullName": "Khater, Abdel Rahman",
+      "email": "akhater@acuative.com",
+      "department": "VND",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-034",
+      "fullName": "Lataifeh, Omar",
+      "email": "olataifeh@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-035",
+      "fullName": "Melhem, Renad",
+      "email": "rmelhem@acuative.com",
+      "department": "VND",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-036",
+      "fullName": "Mihdawi, Ahmad",
+      "email": "amihdawi@acuative.com",
+      "department": "ISM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-037",
+      "fullName": "Mustafa, Karam",
+      "email": "kmustafa@acuative.com",
+      "department": "RES",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-038",
+      "fullName": "Obaid, Mahmoud",
+      "email": "mobaid@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-039",
+      "fullName": "Qaoud, Muna",
+      "email": "mqaoud@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-040",
+      "fullName": "Sa-Deddin, Mohammad",
+      "email": "msa-deddin@acuative.com",
+      "department": "FIN",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-041",
+      "fullName": "Sabbah, Abdel Rahman",
+      "email": "asabbah@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-042",
+      "fullName": "Saleh, Mohammad",
+      "email": "msaleh@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-043",
+      "fullName": "Samara, Yazan",
+      "email": "ysamara@acuative.com",
+      "department": "HRM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-044",
+      "fullName": "Sublaban, Mohammad",
+      "email": "msublaban@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-045",
+      "fullName": "Tailooni, Hanan",
+      "email": "htailooni@acuative.com",
+      "department": "GCO",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-046",
+      "fullName": "Thaher, Fakhri",
+      "email": "fthaher@acuative.com",
+      "department": "ITM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-047",
+      "fullName": "Yacoub, Rama",
+      "email": "ryacoub@acuative.com",
+      "department": "RES",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-048",
+      "fullName": "Patel, Anjali",
+      "email": "anjpatel@acuative.com",
+      "department": "HRM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-049",
+      "fullName": "Darawsheh, Ehab",
+      "email": "edarawsheh@acuative.com",
+      "department": "ISM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-050",
+      "fullName": "Alfayoumi, Ahmad",
+      "email": "aalfayoumi@acuative.com",
+      "department": "ISM",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-051",
+      "fullName": "Alrefai, Ahmad",
+      "email": "aalrefai@acuative.com",
+      "department": "FIN",
+      "position": "Employee"
+    },
+    {
+      "id": "EMP-052",
+      "fullName": "Badawi, Sara",
+      "email": "sbadawi@acuative.com",
+      "department": "HRM",
+      "position": "Employee"
+    }
+  ]
+}

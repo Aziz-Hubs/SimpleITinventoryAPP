@@ -1,14 +1,9 @@
 "use client";
 
 import * as React from "react";
-import {
-  getMaintenanceRecords,
-  getMaintenanceRecordById,
-} from "@/services/maintenance-service";
-import type {
-  MaintenanceRecord,
-  MaintenanceStatus,
-} from "@/lib/maintenance-types";
+import { MaintenanceRecord, MaintenanceStatus } from "@/lib/types";
+import { useMaintenanceRecords } from "@/hooks/api/use-maintenance";
+import { useTableParams } from "@/hooks/use-table-params";
 import { MaintenanceDialog } from "./maintenance-dialog";
 import { MaintenanceDetailSheet } from "./maintenance-detail-sheet";
 import { MaintenanceToolbar } from "./maintenance-toolbar";
@@ -42,13 +37,27 @@ import {
 import { cn } from "@/lib/utils";
 
 export function MaintenanceDashboard() {
-  const [records, setRecords] = React.useState<MaintenanceRecord[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<
-    MaintenanceStatus | "all"
-  >("all");
-  const [viewMode, setViewMode] = React.useState<"list" | "board">("board");
+  const { params, setParams } = useTableParams();
+
+  const {
+    data: response,
+    isLoading: loading,
+    refetch,
+  } = useMaintenanceRecords({
+    search: params.search,
+    status: params.state as MaintenanceStatus,
+  });
+
+  const records = response?.data || [];
+
+  const search = params.search;
+  const statusFilter = params.state as MaintenanceStatus | "all";
+  const viewMode = (params.tab as "list" | "board") || "board";
+
+  const setViewMode = (mode: "list" | "board") => setParams({ tab: mode });
+  const setSearch = (s: string) => setParams({ search: s, page: 1 });
+  const setStatusFilter = (s: MaintenanceStatus | "all") =>
+    setParams({ state: s, page: 1 });
 
   // Dialog/Sheet states
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -56,48 +65,20 @@ export function MaintenanceDashboard() {
     React.useState<MaintenanceRecord | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
-  const fetchData = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getMaintenanceRecords();
-      setRecords(data);
-    } catch (error) {
-      console.error("Failed to fetch maintenance records", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const filteredRecords = React.useMemo(() => {
-    return records.filter((record) => {
-      const matchesSearch =
-        record.assetTag.toLowerCase().includes(search.toLowerCase()) ||
-        record.issue.toLowerCase().includes(search.toLowerCase()) ||
-        record.technician?.toLowerCase().includes(search.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "all" || record.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [records, search, statusFilter]);
+    // Note: The hook already filters if implemented in service,
+    // but for mock demo we might still do some client-side or rely on hook data.
+    // If the hook returns already filtered data, we just use it.
+    return records;
+  }, [records]);
 
   const handleCreateSuccess = () => {
-    fetchData();
+    // Success is handled by mutation callbacks in the dialog usually,
+    // but we can trigger invalidation if needed. Hook already handles success toast.
   };
 
   const handleUpdate = () => {
-    fetchData();
-    // Refresh the selected record to show latest data in sheet
-    if (selectedRecord) {
-      getMaintenanceRecordById(selectedRecord.id).then((updated) => {
-        if (updated) setSelectedRecord(updated);
-      });
-    }
+    // Invalidation handled by mutation hooks
   };
 
   const handleRowClick = (record: MaintenanceRecord) => {
@@ -126,14 +107,14 @@ export function MaintenanceDashboard() {
             onSearchChange={setSearch}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
-            onRefresh={fetchData}
+            onRefresh={() => refetch()}
             onCreate={() => setIsDialogOpen(true)}
             loading={loading}
           />
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-hidden">
           {viewMode === "list" ? (
-            <div className="h-full overflow-auto">
+            <div className="h-full overflow-auto p-6">
               <Table>
                 <TableHeader className="bg-muted/30 sticky top-0 z-10">
                   <TableRow>
@@ -229,7 +210,7 @@ export function MaintenanceDashboard() {
               <MaintenanceBoard
                 records={filteredRecords}
                 onRecordClick={handleRowClick}
-                onRefresh={fetchData}
+                onRefresh={() => refetch()}
               />
             </div>
           )}

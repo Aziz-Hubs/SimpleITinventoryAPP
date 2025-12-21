@@ -327,11 +327,11 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="p-0">
+      <CardContent className="p-6">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-muted/30">
-              <TableHead className="w-[200px] pl-6">
+              <TableHead className="w-[200px]">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
                   User
@@ -349,7 +349,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                   Category
                 </div>
               </TableHead>
-              <TableHead className="text-right pr-6">
+              <TableHead className="text-right">
                 <div className="flex items-center justify-end gap-2">
                   <Clock className="h-4 w-4" />
                   Time
@@ -372,7 +372,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                       setIsSheetOpen(true);
                     }}
                   >
-                    <TableCell className="py-4 pl-6">
+                    <TableCell className="py-4">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8 border">
                           <AvatarImage
@@ -408,7 +408,7 @@ export function ActivitiesLog({ activities }: ActivitiesLogProps) {
                         {details.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-4 text-right pr-6">
+                    <TableCell className="py-4 text-right">
                       <div className="flex flex-col items-end gap-0.5">
                         <span className="text-sm text-foreground">
                           {formatRelativeTime(activity.timestamp)}

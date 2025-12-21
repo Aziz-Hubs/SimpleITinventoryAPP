@@ -1,16 +1,21 @@
 /**
- * Inventory Service
- * 
- * Handles all inventory-related API calls and data management.
- * Supports both mock data (from inv.json) and real API integration.
+ * @file inventory-service.ts
+ * @description Core service layer for managing IT inventory assets.
+ * Orchestrates data fetching, filtering, and CRUD operations, supporting both 
+ * local mock storage (via `MockStorage`) and remote REST API integration.
+ * @path /services/inventory-service.ts
  */
 
-import { apiClient, isMockDataEnabled } from '@/lib/api-client';
+import { isMockDataEnabled, apiClient } from '@/lib/api-client';
 import { Asset, PaginatedResponse, AssetFilters, ImportResult } from '@/lib/types';
 import inventoryData from '@/data/inv.json';
+import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
+import { paginateData } from '@/lib/utils';
 
 /**
- * Convert inv.json format to Asset type
+ * Interface representing the raw structure of individual items in the `inv.json` file.
+ * Used for safe type assertion during the initial mock data conversion process.
+ * @private
  */
 interface InventoryItem {
   category?: string;
@@ -33,6 +38,12 @@ interface InventoryItem {
   refreshhertz?: string;
 }
 
+/**
+ * Transforms the static mock JSON data into the application's unified `Asset` type.
+ * Ensures all required fields have sensible defaults (e.g., "N/A" for hardware specs).
+ * 
+ * @returns {Asset[]} An array of normalized Asset objects.
+ */
 function convertInventoryData(): Asset[] {
   return (inventoryData as InventoryItem[]).map((item, index) => ({
     id: index + 1,
@@ -58,15 +69,24 @@ function convertInventoryData(): Asset[] {
 }
 
 /**
- * Mock data from inv.json
+ * Accesses or initializes the local storage-based mock inventory.
+ * If no data exists in localStorage, it hydrates the storage with converted `inv.json` data.
+ * 
+ * @returns {Asset[]} The current set of assets from mock storage.
  */
-const MOCK_INVENTORY: Asset[] = convertInventoryData();
+function getMockInventory(): Asset[] {
+  return MockStorage.initialize(STORAGE_KEYS.INVENTORY, convertInventoryData());
+}
 
 /**
- * Apply filters to mock data
+ * Performs client-side filtering on the mock dataset.
+ * Supports exact matches for category/state and fuzzy partial matches for employee/location/search.
+ * 
+ * @param filters - The filter criteria provided by the UI.
+ * @returns {Asset[]} The filtered subset of assets.
  */
 function filterMockData(filters: AssetFilters): Asset[] {
-  let filtered = [...MOCK_INVENTORY];
+  let filtered = getMockInventory();
 
   if (filters.category) {
     filtered = filtered.filter(
@@ -105,44 +125,32 @@ function filterMockData(filters: AssetFilters): Asset[] {
 }
 
 /**
- * Paginate data
- */
-function paginateData<T>(data: T[], page: number = 1, pageSize: number = 50): PaginatedResponse<T> {
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = data.slice(startIndex, endIndex);
-
-  return {
-    data: paginatedData,
-    pagination: {
-      page,
-      pageSize,
-      totalItems: data.length,
-      totalPages: Math.ceil(data.length / pageSize),
-    },
-  };
-}
-
-/**
- * Get all assets with optional filtering and pagination
+ * Retrieves a paginated list of assets.
+ * 
+ * @param filters - Pagination and filtering parameters.
+ * @returns {Promise<PaginatedResponse<Asset>>}
  */
 export async function getAssets(filters: AssetFilters = {}): Promise<PaginatedResponse<Asset>> {
   if (isMockDataEnabled()) {
-    // Use mock data from inv.json
     const filtered = filterMockData(filters);
     return Promise.resolve(paginateData(filtered, filters.page, filters.pageSize));
   }
 
-  // Call real API
-  return apiClient.get<PaginatedResponse<Asset>>('/assets', { params: filters as Record<string, string | number | boolean | undefined> });
+  return apiClient.get<PaginatedResponse<Asset>>('/assets', { 
+    params: filters as Record<string, string | number | boolean | undefined> 
+  });
 }
 
 /**
- * Get a single asset by ID
+ * Fetches a single asset by its unique numeric ID.
+ * 
+ * @param id - The asset ID.
+ * @throws {Error} If in mock mode and the ID does not exist.
+ * @returns {Promise<Asset>}
  */
 export async function getAssetById(id: number): Promise<Asset> {
   if (isMockDataEnabled()) {
-    const asset = MOCK_INVENTORY.find((a) => a.id === id);
+    const asset = getMockInventory().find((a) => a.id === id);
     if (!asset) {
       throw new Error(`Asset with ID ${id} not found`);
     }
@@ -153,51 +161,62 @@ export async function getAssetById(id: number): Promise<Asset> {
 }
 
 /**
- * Get a single asset by service tag
+ * Convenience method to find an asset by its Hardware/Service tag.
+ * Useful for scanning operations or deep-linking from serial numbers.
+ * 
+ * @param serviceTag - The service tag string to search for.
+ * @returns {Promise<Asset | null>} The asset if found, otherwise null.
  */
 export async function getAssetByServiceTag(serviceTag: string): Promise<Asset | null> {
   if (isMockDataEnabled()) {
-    const asset = MOCK_INVENTORY.find(
-      (a) => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()
+    const asset = getMockInventory().find(
+      (a: Asset) => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()
     );
     return Promise.resolve(asset || null);
   }
 
-  // Call real API
   const response = await getAssets({ search: serviceTag });
   return response.data.find(a => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()) || null;
 }
 
 /**
- * Search assets for autocomplete
+ * Performs a lightweight search intended for autocomplete fields.
+ * Limited to first 10 matches for performance.
+ * 
+ * @param query - The search string.
+ * @returns {Promise<Asset[]>} Top 10 matching assets.
  */
 export async function searchAssets(query: string): Promise<Asset[]> {
   if (isMockDataEnabled()) {
     if (!query) return Promise.resolve([]);
     const lowerQuery = query.toLowerCase();
-    const results = MOCK_INVENTORY.filter(
-      (a) =>
+    const results = getMockInventory().filter(
+      (a: Asset) =>
         a.servicetag?.toLowerCase().includes(lowerQuery) ||
         a.model?.toLowerCase().includes(lowerQuery)
-    ).slice(0, 10); // Limit to 10 results
+    ).slice(0, 10);
     return Promise.resolve(results);
   }
 
-  // Real API implementation
   const response = await getAssets({ search: query, pageSize: 10 });
   return response.data;
 }
 
 /**
- * Create a new asset
+ * Persists a new asset to the system.
+ * 
+ * @param asset - The asset data excluding auto-generated ID.
+ * @sideeffect Updates localStorage in mock mode.
+ * @returns {Promise<Asset>} The created asset with its new ID.
  */
 export async function createAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
   if (isMockDataEnabled()) {
+    const inventory = getMockInventory();
     const newAsset: Asset = {
       ...asset,
-      id: MOCK_INVENTORY.length + 1,
+      id: inventory.length > 0 ? Math.max(...inventory.map(a => a.id || 0)) + 1 : 1,
     };
-    MOCK_INVENTORY.push(newAsset);
+    MockStorage.add(STORAGE_KEYS.INVENTORY, newAsset);
     return Promise.resolve(newAsset);
   }
 
@@ -205,31 +224,37 @@ export async function createAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
 }
 
 /**
- * Update an existing asset
+ * Updates an existing asset's details.
+ * 
+ * @param id - ID of the asset to update.
+ * @param asset - Partial set of fields to change.
+ * @throws {Error} If the asset is not found in mock mode.
+ * @returns {Promise<Asset>} The updated asset.
  */
 export async function updateAsset(id: number, asset: Partial<Asset>): Promise<Asset> {
   if (isMockDataEnabled()) {
-    const index = MOCK_INVENTORY.findIndex((a) => a.id === id);
-    if (index === -1) {
+    const updated = MockStorage.update<Asset>(STORAGE_KEYS.INVENTORY, id, asset);
+    if (!updated) {
       throw new Error(`Asset with ID ${id} not found`);
     }
-    MOCK_INVENTORY[index] = { ...MOCK_INVENTORY[index], ...asset };
-    return Promise.resolve(MOCK_INVENTORY[index]);
+    return Promise.resolve(updated);
   }
 
   return apiClient.put<Asset>(`/assets/${id}`, asset);
 }
 
 /**
- * Delete an asset
+ * Removes an asset from the inventory.
+ * 
+ * @param id - The asset ID to delete.
+ * @returns {Promise<{ success: boolean; message: string }>}
  */
 export async function deleteAsset(id: number): Promise<{ success: boolean; message: string }> {
   if (isMockDataEnabled()) {
-    const index = MOCK_INVENTORY.findIndex((a) => a.id === id);
-    if (index === -1) {
+    const success = MockStorage.remove(STORAGE_KEYS.INVENTORY, id);
+    if (!success) {
       throw new Error(`Asset with ID ${id} not found`);
     }
-    MOCK_INVENTORY.splice(index, 1);
     return Promise.resolve({ success: true, message: 'Asset deleted successfully' });
   }
 
@@ -237,11 +262,13 @@ export async function deleteAsset(id: number): Promise<{ success: boolean; messa
 }
 
 /**
- * Import assets from CSV
+ * Triggers a CSV file upload for bulk asset creation/updates.
+ * 
+ * @param file - The multi-part form file data.
+ * @returns {Promise<ImportResult>} Summary of success and failure counts.
  */
 export async function importAssetsFromCSV(file: File): Promise<ImportResult> {
   if (isMockDataEnabled()) {
-    // Mock implementation
     return Promise.resolve({
       success: true,
       imported: 0,
@@ -253,7 +280,6 @@ export async function importAssetsFromCSV(file: File): Promise<ImportResult> {
   const formData = new FormData();
   formData.append('file', file);
 
-  // Note: This would need a different fetch implementation for file upload
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/import/csv`, {
     method: 'POST',
     body: formData,
@@ -263,11 +289,13 @@ export async function importAssetsFromCSV(file: File): Promise<ImportResult> {
 }
 
 /**
- * Export assets to CSV
+ * Generates and downloads a CSV export of the current filtered inventory.
+ * 
+ * @param filters - Search criteria to filter the export results.
+ * @returns {Promise<Blob>} A blob containing the CSV file data.
  */
 export async function exportAssetsToCSV(filters: AssetFilters = {}): Promise<Blob> {
   if (isMockDataEnabled()) {
-    // Generate CSV from mock data
     const filtered = filterMockData(filters);
     const headers = Object.keys(filtered[0] || {}).join(',');
     const rows = filtered.map((asset) => Object.values(asset).join(','));
@@ -284,10 +312,12 @@ export async function exportAssetsToCSV(filters: AssetFilters = {}): Promise<Blo
 }
 
 /**
- * Get inventory statistics
+ * aggregates statistics about the inventory for overview charts and kpi cards.
+ * 
+ * @returns {Promise<Object>} aggregations by status, category, and assignment.
  */
 export async function getInventoryStats() {
-  const assets = isMockDataEnabled() ? MOCK_INVENTORY : (await getAssets({ pageSize: 9999 })).data;
+  const assets = isMockDataEnabled() ? getMockInventory() : (await getAssets({ pageSize: 9999 })).data;
 
   const totalAssets = assets.length;
   const assigned = assets.filter((a) => a.employee && a.employee !== 'UNASSIGNED').length;

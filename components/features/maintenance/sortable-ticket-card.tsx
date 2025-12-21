@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MaintenanceRecord } from "@/lib/maintenance-types";
+import { MaintenanceRecord } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {

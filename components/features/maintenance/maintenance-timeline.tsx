@@ -10,7 +10,7 @@ import {
   IconCalendarEvent,
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
-import type { MaintenanceTimelineEvent } from "@/lib/maintenance-types";
+import type { MaintenanceTimelineEvent } from "@/lib/types";
 
 interface MaintenanceTimelineProps {
   events: MaintenanceTimelineEvent[];

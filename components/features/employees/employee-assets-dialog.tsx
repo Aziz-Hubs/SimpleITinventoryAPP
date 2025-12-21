@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getAssets } from "@/services/dashboard-service";
-import { AssetLegacy } from "@/lib/types";
+import { Asset } from "@/lib/types";
 import {
   Laptop,
   Monitor,
@@ -79,14 +79,14 @@ export function EmployeeAssetsDialog({
   open,
   onOpenChange,
 }: EmployeeAssetsDialogProps) {
-  const [assets, setAssets] = React.useState<AssetLegacy[]>([]);
+  const [assets, setAssets] = React.useState<Asset[]>([]);
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (open && employeeName) {
       setLoading(true);
       getAssets().then((allAssets) => {
-        const filtered = allAssets.filter((a) => a.Employee === employeeName);
+        const filtered = allAssets.filter((a) => a.employee === employeeName);
         setAssets(filtered);
         setLoading(false);
       });
@@ -152,33 +152,33 @@ export function EmployeeAssetsDialog({
                         <TableCell className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/5 rounded-lg group-hover:bg-primary/10 transition-colors border">
-                              {getAssetIcon(asset.Category)}
+                              {getAssetIcon(asset.category)}
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <span className="font-semibold text-sm">
-                                {asset.Make}
+                                {asset.make}
                               </span>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs text-muted-foreground">
-                                  {asset.Model}
+                                  {asset.model}
                                 </span>
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted font-bold tracking-tighter uppercase text-muted-foreground border">
-                                  {asset.Category}
+                                  {asset.category}
                                 </span>
                               </div>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-4 font-mono text-[10px] font-semibold text-muted-foreground">
-                          {asset["Service Tag"]}
+                          {asset.servicetag}
                         </TableCell>
                         <TableCell className="px-6 py-4 text-right">
                           <Badge
                             className={`text-[9px] font-extrabold uppercase px-2 py-0.5 tracking-tight border shadow-none ${getStateColor(
-                              asset.State
+                              asset.state
                             )}`}
                           >
-                            {asset.State}
+                            {asset.state}
                           </Badge>
                         </TableCell>
                       </TableRow>

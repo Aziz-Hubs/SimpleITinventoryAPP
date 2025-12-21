@@ -1,26 +1,19 @@
+/**
+ * @file data-table-column-header.tsx
+ * @description A multi-functional column header for TanStack Table.
+ * Integrates sorting triggers and per-column faceted filtering (Quick Filter)
+ * into a single unified popover interface.
+ * @path /components/shared/data-table-column-header.tsx
+ */
+
 "use client";
 
 import * as React from "react";
 import { Column } from "@tanstack/react-table";
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronsUpDown,
-  EyeOff,
-  Filter,
-  Check,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
 import {
   Command,
   CommandEmpty,
@@ -35,14 +28,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 
+/**
+ * Props for the Column Header component.
+ */
 interface DataTableColumnHeaderProps<TData, TValue>
   extends React.HTMLAttributes<HTMLDivElement> {
+  /** The TanStack column object containing state and handlers. */
   column: Column<TData, TValue>;
+  /** The visible text label for the column. */
   title: string;
 }
 
+/**
+ * Intelligent Column Header.
+ * Features:
+ * 1. Sorting (Asc/Desc)
+ * 2. Faceted Search (lists unique values found in the column for quick selection)
+ * 3. Exact Value Filtering
+ */
 export function DataTableColumnHeader<TData, TValue>({
   column,
   title,
@@ -50,18 +54,20 @@ export function DataTableColumnHeader<TData, TValue>({
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const [open, setOpen] = React.useState(false);
 
-  const selectedValues = new Set(column.getFilterValue() as string[]);
   const filterValue = (column.getFilterValue() ?? "") as string;
 
-  // For faceted filtering (suggestions)
+  /**
+   * Extracts unique values from the column data for the suggest-and-filter UI.
+   * Leverages TanStack's faceted unique values core logic.
+   */
   const sortedUniqueValues = React.useMemo(() => {
-    // If not faceted, we can't show suggestions effectively
     const valuesMap = column.getFacetedUniqueValues();
     if (!valuesMap) return [];
-    return Array.from(valuesMap.keys()).sort().slice(0, 50); // Limit to 50 suggestions
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [column.getFacetedUniqueValues()]);
+    // Limit to 50 items to keep the popover performant
+    return Array.from(valuesMap.keys()).sort().slice(0, 50);
+  }, [column]);
 
+  // If column is static (no sorting/filtering), render simple text
   if (!column.getCanSort()) {
     return <div className={cn(className)}>{title}</div>;
   }
@@ -83,81 +89,106 @@ export function DataTableColumnHeader<TData, TValue>({
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
+
+            {/* Visual Dot: indicates an active filter is applied to this specific column */}
             {(column.getFilterValue() as string)?.length > 0 && (
-              <span className="ml-1 flex h-2 w-2 rounded-full bg-primary" />
+              <span className="ml-1 flex h-2 w-2 rounded-full bg-primary animate-pulse" />
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[200px] p-0">
-          <div className="p-2 border-b border-border/50">
-            <div className="flex items-center gap-2 mb-2">
+        <PopoverContent
+          align="start"
+          className="w-[200px] p-0 shadow-xl border-primary/10"
+        >
+          {/* Sorting Actions */}
+          <div className="p-2 border-b border-border/50 bg-muted/20">
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 h-8 justify-start"
-                onClick={() => column.toggleSorting(false)}
+                className="flex-1 h-8 justify-start text-xs font-semibold"
+                onClick={() => {
+                  column.toggleSorting(false);
+                  setOpen(false);
+                }}
               >
-                <ArrowUp className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-                Asc
+                <ArrowUp className="mr-2 h-3.5 w-3.5 text-primary" />
+                Ascending
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 h-8 justify-start"
-                onClick={() => column.toggleSorting(true)}
+                className="flex-1 h-8 justify-start text-xs font-semibold"
+                onClick={() => {
+                  column.toggleSorting(true);
+                  setOpen(false);
+                }}
               >
-                <ArrowDown className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
-                Desc
+                <ArrowDown className="mr-2 h-3.5 w-3.5 text-primary" />
+                Descending
               </Button>
             </div>
           </div>
 
-          <Command>
+          {/* Filtering Engine */}
+          <Command className="rounded-none">
             <CommandInput
               placeholder={`Filter ${title}...`}
               value={Array.isArray(filterValue) ? "" : String(filterValue)}
               onValueChange={(val) => column.setFilterValue(val)}
-              className="h-9"
+              className="h-9 border-none focus:ring-0"
             />
-            <CommandList>
-              <CommandEmpty>No results found.</CommandEmpty>
-              <CommandGroup heading="Suggestions">
-                {sortedUniqueValues.map((value) => (
-                  <CommandItem
-                    key={value}
-                    onSelect={() => {
-                      // Quick Filter: Set exact value
-                      if (column.getFilterValue() === value) {
-                        column.setFilterValue(undefined);
-                      } else {
-                        column.setFilterValue(value);
-                      }
-                      //    setOpen(false); // Optional: close on selection
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                        column.getFilterValue() === value
-                          ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
-                      )}
+            <CommandList className="max-h-[200px]">
+              <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+                No suggestions found.
+              </CommandEmpty>
+
+              {sortedUniqueValues.length > 0 && (
+                <CommandGroup
+                  heading="Quick Selection"
+                  className="px-1 text-[10px] uppercase font-bold text-muted-foreground/60"
+                >
+                  {sortedUniqueValues.map((value) => (
+                    <CommandItem
+                      key={value}
+                      className="text-sm cursor-pointer"
+                      onSelect={() => {
+                        // Toggle Logic: If clicking the active filter, clear it.
+                        if (column.getFilterValue() === value) {
+                          column.setFilterValue(undefined);
+                        } else {
+                          column.setFilterValue(value);
+                        }
+                      }}
                     >
-                      <Check className={cn("h-4 w-4")} />
-                    </div>
-                    <span>{value}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                      <div
+                        className={cn(
+                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary transition-all",
+                          column.getFilterValue() === value
+                            ? "bg-primary text-primary-foreground"
+                            : "opacity-50 [&_svg]:invisible"
+                        )}
+                      >
+                        <Check className={cn("h-4 w-4")} />
+                      </div>
+                      <span className="truncate">{value}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
               {filterValue && (
                 <>
                   <CommandSeparator />
                   <CommandGroup>
                     <CommandItem
-                      onSelect={() => column.setFilterValue(undefined)}
-                      className="justify-center text-center"
+                      onSelect={() => {
+                        column.setFilterValue(undefined);
+                        setOpen(false);
+                      }}
+                      className="justify-center text-center text-xs font-bold text-destructive hover:bg-destructive/5"
                     >
-                      Clear Filter
+                      Reset Column Filter
                     </CommandItem>
                   </CommandGroup>
                 </>

@@ -13,6 +13,9 @@ import {
 
 import { Asset } from "@/lib/types";
 import { toast } from "sonner";
+import { parseInventoryCsv, ParsedAsset } from "@/lib/csv-parser";
+import { ImportInventoryDialog } from "@/components/features/inventory/import-inventory-dialog";
+import { useCreateAsset } from "@/hooks/api/use-assets";
 
 interface InventoryHeaderActionsProps {
   assets?: Asset[];
@@ -23,6 +26,13 @@ export function InventoryHeaderActions({
 }: InventoryHeaderActionsProps) {
   const [open, setOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Import State
+  const [isImportOpen, setIsImportOpen] = React.useState(false);
+  const [importAssets, setImportAssets] = React.useState<ParsedAsset[]>([]);
+  const [isImporting, setIsImporting] = React.useState(false);
+
+  const createMutation = useCreateAsset();
 
   const handleExport = () => {
     if (!assets || assets.length === 0) return;
@@ -54,21 +64,40 @@ export function InventoryHeaderActions({
     toast.info("Opening print dialog for PDF export");
   };
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      console.log("Imported CSV content:", text);
-      toast.success(
-        `Successfully imported ${text.split("\n").length - 1} assets from CSV`
-      );
-      // Reset input
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    };
-    reader.readAsText(file);
+    try {
+      const parsed = await parseInventoryCsv(file);
+      setImportAssets(parsed);
+      setIsImportOpen(true);
+    } catch (error) {
+      toast.error("Failed to parse CSV file");
+      console.error(error);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    setIsImporting(true);
+    try {
+      // Process sequentially
+      for (const asset of importAssets) {
+        await createMutation.mutateAsync(asset);
+      }
+      toast.success(`Successfully imported ${importAssets.length} items`);
+      setIsImportOpen(false);
+      setImportAssets([]);
+    } catch (error) {
+      toast.error("Failed to import some items");
+      console.error(error);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   return (
@@ -130,6 +159,15 @@ export function InventoryHeaderActions({
       </Button>
 
       <AddAssetDialog open={open} onOpenChange={setOpen} />
+
+      <ImportInventoryDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        assets={importAssets}
+        onConfirm={handleConfirmImport}
+        onCancel={() => setIsImportOpen(false)}
+        isImporting={isImporting}
+      />
     </div>
   );
 }
