@@ -29,6 +29,14 @@ export function useModels(filters: ModelFilters = {}) {
   });
 }
 
+export function useModelById(id: number) {
+  return useQuery({
+    queryKey: MODEL_KEYS.detail(id),
+    queryFn: () => getModelById(id),
+    enabled: !!id,
+  });
+}
+
 export function useModelMutation() {
   const queryClient = useQueryClient();
 

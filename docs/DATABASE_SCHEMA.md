@@ -1,418 +1,164 @@
-# Database Schema Specification
+# Database Schema Specification v3.0 (Production-Ready)
 
-This document defines the database schema for the Simple IT Inventory App backend.
+This document defines the finalized database schema for the Simple IT Inventory App. It has been refactored for high-performance ASP.NET Core / EF Core implementation, supporting multi-tenancy, full auditability, and optimistic concurrency.
 
 ---
 
-## Entity Relationship Diagram
+## 1. Architectural Design Principles
 
-```
-┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-│     Employee    │       │      Asset      │       │      Model      │
-├─────────────────┤       ├─────────────────┤       ├─────────────────┤
-│ PK: Id          │◄──────│ FK: EmployeeId  │       │ PK: Id          │
-│    FullName     │       │ FK: ModelId     │──────►│    Name         │
-│    Email        │       │ PK: Id          │       │    Category     │
-│    Department   │       │    ServiceTag   │       │    Make         │
-│    Position     │       │    Category     │       │    Cpu          │
-└─────────────────┘       │    State        │       │    Ram          │
-                          │    Location     │       │    Storage      │
-                          └────────┬────────┘       └─────────────────┘
-                                   │
-                                   │
-                          ┌────────▼────────┐
-                          │  Maintenance    │
-                          │     Record      │
-                          ├─────────────────┤
-                          │ PK: Id          │
-                          │ FK: AssetId     │
-                          │ FK: TechnicianId│
-                          │    Issue        │
-                          │    Status       │
-                          └────────┬────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-           ┌────────▼────────┐           ┌────────▼────────┐
-           │ MaintenanceNote │           │MaintenanceComment│
-           └─────────────────┘           └─────────────────┘
+-   **Multi-Tenancy:** Every table contains a `TenantId` to ensure logical data isolation.
+-   **Audit Trail:** Mandatory temporal and user tracking on every record.
+-   **Financial Integrity:** Procurement is tracked via `InvoiceLineItems` to handle bulk purchases and unit pricing accurately.
+-   **Maintenance History:** Maintenance records use JSONB snapshots to preserve asset state (e.g., Specs, CPU, RAM) at the time of repair, preventing historical data drift if a model is updated later.
+-   **Concurrency:** Optimistic concurrency control is implemented via `RowVersion` tokens.
+
+---
+
+## 2. Entity Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    TENANT ||--o{ ASSET : owns
+    TENANT ||--o{ EMPLOYEE : employs
+    TENANT ||--o{ INVOICE : receives
+    
+    INVOICE ||--o{ INVOICE_LINE_ITEM : contains
+    INVOICE_LINE_ITEM ||--o{ ASSET : fulfills
+    
+    MODEL ||--o{ ASSET : defines
+    MODEL ||--o{ INVOICE_LINE_ITEM : specifies
+    
+    EMPLOYEE ||--o{ ASSET : assigned_to
+    
+    ASSET ||--o{ MAINTENANCE_RECORD : undergoes
+    MAINTENANCE_RECORD ||--|| MAINTENANCE_COST : incurs
+    MAINTENANCE_RECORD ||--o{ MAINTENANCE_TIMELINE : logs
 ```
 
 ---
 
-## Tables
+## 3. Global Standard Columns
 
-### 1. Employees
+All tables defined below implicitly include these six mandatory columns. They are omitted from individual tables for brevity but **MUST** be implemented.
 
-Stores organizational employee records.
-
-| Column       | Type          | Constraints       | Description                   |
-| ------------ | ------------- | ----------------- | ----------------------------- |
-| `Id`         | VARCHAR(20)   | PRIMARY KEY       | Employee ID (e.g., "EMP-001") |
-| `FullName`   | NVARCHAR(100) | NOT NULL          | Full name (e.g., "Doe, John") |
-| `Email`      | VARCHAR(255)  | NOT NULL, UNIQUE  | Email address                 |
-| `Department` | NVARCHAR(50)  | NOT NULL          | Department code/name          |
-| `Position`   | NVARCHAR(100) | NOT NULL          | Job title                     |
-| `CreatedAt`  | DATETIME      | DEFAULT GETDATE() | Record creation timestamp     |
-| `UpdatedAt`  | DATETIME      | NULL              | Last modification timestamp   |
-| `IsActive`   | BIT           | DEFAULT 1         | Soft delete flag              |
-
-**Indexes:**
-
-- `IX_Employees_Email` (UNIQUE)
-- `IX_Employees_Department`
-- `IX_Employees_FullName`
+| Column      | Type                 | Nullability | Description                                          |
+| ----------- | -------------------- | ----------- | ---------------------------------------------------- |
+| `TenantId`  | `UniqueIdentifier`   | NOT NULL    | Multi-tenancy partition key.                         |
+| `CreatedAt` | `DateTimeOffset`     | NOT NULL    | Record creation timestamp.                           |
+| `CreatedBy` | `NVARCHAR(255)`      | NOT NULL    | User ID who created the record.                      |
+| `UpdatedAt` | `DateTimeOffset`     | NOT NULL    | Last update timestamp.                               |
+| `UpdatedBy` | `NVARCHAR(255)`      | NOT NULL    | User ID who last updated the record.                 |
+| `RowVersion`| `Timestamp/RowVersion` | NOT NULL    | Concurrency token for EF Core.                         |
 
 ---
 
-### 2. Assets
+## 4. Table Definitions
 
-Core inventory table for all IT assets.
+### 4.1. Core Inventory & Personnel
 
-| Column               | Type          | Constraints           | Description                         |
-| -------------------- | ------------- | --------------------- | ----------------------------------- |
-| `Id`                 | INT           | PRIMARY KEY, IDENTITY | Auto-increment ID                   |
-| `ServiceTag`         | VARCHAR(50)   | NOT NULL, UNIQUE      | Hardware identifier                 |
-| `Category`           | VARCHAR(30)   | NOT NULL              | Asset type (Laptop, Monitor, etc.)  |
-| `State`              | VARCHAR(20)   | NOT NULL              | Condition (NEW, GOOD, FAIR, BROKEN) |
-| `Make`               | NVARCHAR(50)  | NOT NULL              | Manufacturer                        |
-| `Model`              | NVARCHAR(100) | NOT NULL              | Model name                          |
-| `WarrantyExpiry`     | DATE          | NULL                  | Warranty end date                   |
-| `Cpu`                | VARCHAR(50)   | NULL                  | Processor specification             |
-| `Ram`                | VARCHAR(20)   | NULL                  | Memory specification                |
-| `Storage`            | VARCHAR(50)   | NULL                  | Storage specification               |
-| `DedicatedGpu`       | VARCHAR(50)   | NULL                  | GPU specification                   |
-| `UsbAPorts`          | VARCHAR(10)   | NULL                  | USB-A port count                    |
-| `UsbCPorts`          | VARCHAR(10)   | NULL                  | USB-C port count                    |
-| `Dimensions`         | VARCHAR(30)   | NULL                  | Physical dimensions (monitors)      |
-| `Resolution`         | VARCHAR(30)   | NULL                  | Screen resolution (monitors)        |
-| `RefreshHertz`       | VARCHAR(20)   | NULL                  | Refresh rate (monitors)             |
-| `Location`           | VARCHAR(50)   | NOT NULL              | Physical location                   |
-| `EmployeeId`         | VARCHAR(20)   | NULL, FK              | Assigned employee                   |
-| `AdditionalComments` | NVARCHAR(500) | NULL                  | Notes                               |
-| `ModelId`            | INT           | NULL, FK              | Reference to Models table           |
-| `CreatedAt`          | DATETIME      | DEFAULT GETDATE()     | Record creation                     |
-| `UpdatedAt`          | DATETIME      | NULL                  | Last modification                   |
-| `IsDeleted`          | BIT           | DEFAULT 0             | Soft delete flag                    |
+#### Tenants
+Stores organizational units/customers.
+- **Id**: `UniqueIdentifier` (PK)
+- **Name**: `NVARCHAR(200)` (Unique)
+- **IsActive**: `BIT` (Default: 1)
 
-**Indexes:**
+#### Employees
+- **Id**: `NVARCHAR(100)` (PK)
+- **FullName**: `NVARCHAR(200)`
+- **Email**: `NVARCHAR(255)`
+- **Department**: `NVARCHAR(100)` (Indexed)
+- **Position**: `NVARCHAR(100)`
 
-- `IX_Assets_ServiceTag` (UNIQUE)
-- `IX_Assets_Category`
-- `IX_Assets_State`
-- `IX_Assets_EmployeeId`
-- `IX_Assets_Location`
+#### Models
+Hardware templates/specifications.
+- **Id**: `INT` (PK, Identity)
+- **Name**: `NVARCHAR(200)`
+- **Make**: `NVARCHAR(100)`
+- **Category**: `NVARCHAR(50)` (e.g., Laptop, Monitor)
+- **Specs**: `JSONB / NVARCHAR(MAX)` (Typed schema based on Category)
 
-**Foreign Keys:**
+#### Assets
+- **Id**: `INT` (PK, Identity)
+- **ServiceTag**: `NVARCHAR(100)` (Unique per Tenant)
+- **ModelId**: `INT` (FK -> Models)
+- **State**: `INT` (Enum: New, Good, Fair, Broken)
+- **EmployeeId**: `NVARCHAR(100)` (FK -> Employees, Nullable)
+- **Location**: `NVARCHAR(100)`
+- **InvoiceLineItemId**: `INT` (FK -> InvoiceLineItems, Nullable)
+- **WarrantyExpiry**: `DateTimeOffset` (Nullable)
+- **IsDeleted**: `BIT` (Soft delete flag)
 
-- `FK_Assets_Employees` → Employees(Id)
-- `FK_Assets_Models` → Models(Id)
+### 4.2. Procurement (Financials)
 
----
+#### Invoices
+- **Id**: `INT` (PK, Identity)
+- **InvoiceNumber**: `NVARCHAR(100)`
+- **Vendor**: `NVARCHAR(200)`
+- **PurchaseDate**: `DateTimeOffset`
 
-### 3. Models
+#### InvoiceLineItems
+Supports bulk procurement.
+- **Id**: `INT` (PK, Identity)
+- **InvoiceId**: `INT` (FK -> Invoices)
+- **ModelId**: `INT` (FK -> Models)
+- **Quantity**: `INT`
+- **UnitPrice**: `DECIMAL(18,2)`
+- **TaxAmount**: `DECIMAL(18,2)`
 
-Hardware model templates with default specifications.
+### 4.3. Maintenance Tracking
 
-| Column         | Type          | Constraints           | Description          |
-| -------------- | ------------- | --------------------- | -------------------- |
-| `Id`           | INT           | PRIMARY KEY, IDENTITY | Auto-increment ID    |
-| `Name`         | NVARCHAR(100) | NOT NULL              | Model name           |
-| `Category`     | VARCHAR(30)   | NOT NULL              | Asset category       |
-| `Make`         | NVARCHAR(50)  | NOT NULL              | Manufacturer         |
-| `Cpu`          | VARCHAR(50)   | NULL                  | Default CPU          |
-| `Ram`          | VARCHAR(20)   | NULL                  | Default RAM          |
-| `Storage`      | VARCHAR(50)   | NULL                  | Default storage      |
-| `DedicatedGpu` | VARCHAR(50)   | NULL                  | Default GPU          |
-| `UsbAPorts`    | VARCHAR(10)   | NULL                  | USB-A ports          |
-| `UsbCPorts`    | VARCHAR(10)   | NULL                  | USB-C ports          |
-| `Dimensions`   | VARCHAR(30)   | NULL                  | Default dimensions   |
-| `Resolution`   | VARCHAR(30)   | NULL                  | Default resolution   |
-| `RefreshHertz` | VARCHAR(20)   | NULL                  | Default refresh rate |
-| `CreatedAt`    | DATETIME      | DEFAULT GETDATE()     | Record creation      |
-| `UpdatedAt`    | DATETIME      | NULL                  | Last modification    |
+#### MaintenanceRecords
+- **Id**: `INT` (PK, Identity)
+- **AssetId**: `INT` (FK -> Assets)
+- **AssetSnapshot**: `JSONB` (Stores Model, Specs, and Owner info at time of ticket)
+- **Issue**: `NVARCHAR(500)`
+- **Priority**: `INT` (Enum: Critical, High, Medium, Low)
+- **Status**: `INT` (Enum: Pending, InProgress, Completed)
+- **TechnicianId**: `NVARCHAR(255)`
 
-**Indexes:**
-
-- `IX_Models_Name_Make` (Name, Make) UNIQUE
-- `IX_Models_Category`
-
----
-
-### 4. MaintenanceRecords
-
-Tracks maintenance tickets and repairs.
-
-| Column          | Type           | Constraints       | Description                      |
-| --------------- | -------------- | ----------------- | -------------------------------- |
-| `Id`            | VARCHAR(20)    | PRIMARY KEY       | Ticket ID (e.g., "MNT-001")      |
-| `AssetId`       | INT            | NOT NULL, FK      | Referenced asset                 |
-| `AssetTag`      | VARCHAR(50)    | NOT NULL          | Asset service tag (denormalized) |
-| `AssetCategory` | VARCHAR(30)    | NOT NULL          | Asset category (denormalized)    |
-| `AssetMake`     | NVARCHAR(50)   | NULL              | Asset make (denormalized)        |
-| `AssetModel`    | NVARCHAR(100)  | NULL              | Asset model (denormalized)       |
-| `Issue`         | NVARCHAR(200)  | NOT NULL          | Issue summary                    |
-| `Description`   | NVARCHAR(2000) | NOT NULL          | Detailed description             |
-| `Category`      | VARCHAR(20)    | NOT NULL          | Maintenance category             |
-| `Status`        | VARCHAR(20)    | NOT NULL          | Current status                   |
-| `Priority`      | VARCHAR(20)    | NOT NULL          | Priority level                   |
-| `TechnicianId`  | VARCHAR(20)    | NULL, FK          | Assigned technician              |
-| `ReportedBy`    | NVARCHAR(100)  | NOT NULL          | Person who reported              |
-| `ReportedDate`  | DATETIME       | NOT NULL          | When reported                    |
-| `ScheduledDate` | DATE           | NULL              | Scheduled work date              |
-| `CompletedDate` | DATETIME       | NULL              | When completed                   |
-| `EstimatedCost` | DECIMAL(10,2)  | NULL              | Estimated repair cost            |
-| `ActualCost`    | DECIMAL(10,2)  | NULL              | Final cost                       |
-| `CreatedAt`     | DATETIME       | DEFAULT GETDATE() | Record creation                  |
-| `UpdatedAt`     | DATETIME       | NULL              | Last modification                |
-
-**Indexes:**
-
-- `IX_Maintenance_AssetId`
-- `IX_Maintenance_Status`
-- `IX_Maintenance_Priority`
-- `IX_Maintenance_TechnicianId`
-- `IX_Maintenance_ReportedDate`
-
-**Foreign Keys:**
-
-- `FK_Maintenance_Assets` → Assets(Id)
-- `FK_Maintenance_Technicians` → Technicians(Id)
+#### MaintenanceCosts
+Unified financial source for repairs.
+- **Id**: `INT` (PK, Identity)
+- **MaintenanceRecordId**: `INT` (FK -> MaintenanceRecords, Unique)
+- **EstimatedCost**: `DECIMAL(18,2)`
+- **ActualPartsCost**: `DECIMAL(18,2)`
+- **ActualLaborCost**: `DECIMAL(18,2)`
+- **TotalActualCost**: Computed (Parts + Labor)
 
 ---
 
-### 5. MaintenanceTimelineEvents
+## 5. Indexing & Performance Plan
 
-Audit log for maintenance ticket changes.
+### 5.1. Dashboard Optimization
+To support `GET /dashboard/stats` efficiently:
+- **`IX_Assets_TenantId_Category_State`**: Composite index to allow rapid grouping and counting of stock levels.
+- **`IX_Maintenance_TenantId_Status`**: Quick filtering for pending vs completed tickets.
 
-| Column          | Type          | Constraints  | Description        |
-| --------------- | ------------- | ------------ | ------------------ |
-| `Id`            | VARCHAR(50)   | PRIMARY KEY  | Event ID           |
-| `MaintenanceId` | VARCHAR(20)   | NOT NULL, FK | Parent ticket      |
-| `Type`          | VARCHAR(20)   | NOT NULL     | Event type         |
-| `Title`         | NVARCHAR(100) | NOT NULL     | Event title        |
-| `Description`   | NVARCHAR(500) | NULL         | Event description  |
-| `Timestamp`     | DATETIME      | NOT NULL     | When occurred      |
-| `UserId`        | NVARCHAR(100) | NOT NULL     | User who triggered |
-
-**Event Types:**
-
-- `creation`
-- `status_change`
-- `assignment`
-- `comment`
-- `update`
-
-**Foreign Keys:**
-
-- `FK_TimelineEvents_Maintenance` → MaintenanceRecords(Id) ON DELETE CASCADE
+### 5.2. Search & Filtering
+- **`IX_Assets_TenantId_ServiceTag`**: Unique covering index for fast individual lookup.
+- **`IX_Employees_TenantId_Email`**: Unique index for personnel lookups.
 
 ---
 
-### 6. MaintenanceComments
+## 6. EF Core Mapping Guide
 
-Comments on maintenance tickets.
-
-| Column          | Type           | Constraints  | Description        |
-| --------------- | -------------- | ------------ | ------------------ |
-| `Id`            | VARCHAR(50)    | PRIMARY KEY  | Comment ID         |
-| `MaintenanceId` | VARCHAR(20)    | NOT NULL, FK | Parent ticket      |
-| `Author`        | NVARCHAR(100)  | NOT NULL     | Comment author     |
-| `Content`       | NVARCHAR(2000) | NOT NULL     | Comment text       |
-| `Timestamp`     | DATETIME       | NOT NULL     | When posted        |
-| `IsInternal`    | BIT            | DEFAULT 0    | Internal-only flag |
-
-**Foreign Keys:**
-
-- `FK_Comments_Maintenance` → MaintenanceRecords(Id) ON DELETE CASCADE
-
----
-
-### 7. MaintenanceCosts
-
-Detailed cost breakdown for maintenance.
-
-| Column             | Type          | Constraints           | Description          |
-| ------------------ | ------------- | --------------------- | -------------------- |
-| `Id`               | INT           | PRIMARY KEY, IDENTITY | Auto-increment ID    |
-| `MaintenanceId`    | VARCHAR(20)   | NOT NULL, FK          | Parent ticket        |
-| `PartsCost`        | DECIMAL(10,2) | DEFAULT 0             | Parts/materials cost |
-| `LaborCost`        | DECIMAL(10,2) | DEFAULT 0             | Labor cost           |
-| `Currency`         | CHAR(3)       | DEFAULT 'USD'         | Currency code        |
-| `PartsDescription` | NVARCHAR(500) | NULL                  | Parts details        |
-| `InvoiceNumber`    | VARCHAR(50)   | NULL                  | Related invoice      |
-
-**Foreign Keys:**
-
-- `FK_Costs_Maintenance` → MaintenanceRecords(Id) ON DELETE CASCADE
-
----
-
-### 8. Technicians
-
-Available maintenance technicians.
-
-| Column      | Type          | Constraints | Description       |
-| ----------- | ------------- | ----------- | ----------------- |
-| `Id`        | VARCHAR(20)   | PRIMARY KEY | Technician ID     |
-| `Name`      | NVARCHAR(100) | NOT NULL    | Full name         |
-| `Specialty` | VARCHAR(50)   | NULL        | Area of expertise |
-| `Email`     | VARCHAR(255)  | NULL        | Contact email     |
-| `Phone`     | VARCHAR(20)   | NULL        | Contact phone     |
-| `IsActive`  | BIT           | DEFAULT 1   | Active status     |
-
----
-
-### 9. Activities
-
-System activity/audit log.
-
-| Column         | Type          | Constraints           | Description               |
-| -------------- | ------------- | --------------------- | ------------------------- |
-| `Id`           | INT           | PRIMARY KEY, IDENTITY | Auto-increment ID         |
-| `UserName`     | NVARCHAR(100) | NOT NULL              | User who performed action |
-| `UserAvatar`   | VARCHAR(255)  | NULL                  | Avatar URL                |
-| `UserInitials` | CHAR(3)       | NOT NULL              | Display initials          |
-| `Action`       | NVARCHAR(100) | NOT NULL              | Action description        |
-| `Target`       | NVARCHAR(200) | NOT NULL              | Affected entity           |
-| `Comment`      | NVARCHAR(500) | NULL                  | Additional context        |
-| `Timestamp`    | DATETIME      | DEFAULT GETDATE()     | When occurred             |
-| `EntityType`   | VARCHAR(50)   | NULL                  | Type of entity affected   |
-| `EntityId`     | VARCHAR(50)   | NULL                  | ID of affected entity     |
-
-**Indexes:**
-
-- `IX_Activities_Timestamp`
-- `IX_Activities_EntityType_EntityId`
-
----
-
-## Lookup Tables
-
-### AssetCategories
-
-| Column        | Type         | Constraints |
-| ------------- | ------------ | ----------- |
-| `Code`        | VARCHAR(30)  | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(50) | NOT NULL    |
-| `SortOrder`   | INT          | DEFAULT 0   |
-
-**Seed Data:**
-
-```
-Laptop, Monitor, Docking, Headset, Desktop, Network Switch,
-Firewall, Access Point, 5G/4G Modem, UPS, NVR, Printer, TV
+### 6.1. Global Query Filters
+Configure in `OnModelCreating` to enforce multi-tenancy and soft deletes automatically:
+```csharp
+builder.Entity<Asset>().HasQueryFilter(a => a.TenantId == _currentTenantId && !a.IsDeleted);
 ```
 
----
-
-### AssetStates
-
-| Column        | Type         | Constraints |
-| ------------- | ------------ | ----------- |
-| `Code`        | VARCHAR(20)  | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(30) | NOT NULL    |
-| `ColorCode`   | VARCHAR(7)   | NULL        |
-
-**Seed Data:**
-
-```
-NEW (#22c55e), GOOD (#3b82f6), FAIR (#f59e0b), BROKEN (#ef4444)
+### 6.2. JSON Mapping
+Map `Models.Specs` and `MaintenanceRecords.AssetSnapshot` using the `.ToJson()` extension (EF Core 7+):
+```csharp
+builder.Entity<Model>().OwnsOne(m => m.Specs, b => { b.ToJson(); });
 ```
 
----
-
-### AssetLocations
-
-| Column        | Type          | Constraints |
-| ------------- | ------------- | ----------- |
-| `Code`        | VARCHAR(50)   | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(100) | NOT NULL    |
-
-**Seed Data:**
-
-```
-Office, Server
+### 6.3. Concurrency Tokens
+Apply to the `RowVersion` shadow property:
+```csharp
+builder.Entity<Asset>().Property(a => a.RowVersion).IsRowVersion();
 ```
 
----
-
-### MaintenanceCategories
-
-| Column        | Type         | Constraints |
-| ------------- | ------------ | ----------- |
-| `Code`        | VARCHAR(20)  | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(50) | NOT NULL    |
-
-**Seed Data:**
-
-```
-hardware, software, network, preventive
-```
-
----
-
-### MaintenanceStatuses
-
-| Column        | Type         | Constraints |
-| ------------- | ------------ | ----------- |
-| `Code`        | VARCHAR(20)  | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(50) | NOT NULL    |
-| `ColorCode`   | VARCHAR(7)   | NULL        |
-
-**Seed Data:**
-
-```
-pending, in-progress, completed, scheduled, cancelled
-```
-
----
-
-### MaintenancePriorities
-
-| Column        | Type         | Constraints |
-| ------------- | ------------ | ----------- |
-| `Code`        | VARCHAR(20)  | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(30) | NOT NULL    |
-| `SortOrder`   | INT          | NOT NULL    |
-
-**Seed Data:**
-
-```
-critical (1), high (2), medium (3), low (4)
-```
-
----
-
-## Departments
-
-For normalizing employee departments.
-
-| Column        | Type          | Constraints |
-| ------------- | ------------- | ----------- |
-| `Code`        | VARCHAR(10)   | PRIMARY KEY |
-| `DisplayName` | NVARCHAR(100) | NOT NULL    |
-
-**Seed Data:**
-
-```
-VND, RES, ISM, NOC, FIN, MKT, GCO, FSO, ENG, HRM, ITM, IMP
-```
-
----
-
-## Recommended Database: SQL Server
-
-- Compatible with ASP.NET Entity Framework Core
-- T-SQL syntax used in examples
-- Consider PostgreSQL as alternative
-
----
-
-## Notes for Implementation
-
-1. **Soft Deletes**: Use `IsDeleted` or `IsActive` flags instead of hard deletes
-2. **Audit Timestamps**: All tables should have `CreatedAt` and `UpdatedAt`
-3. **Denormalization**: Asset info is duplicated in MaintenanceRecords for historical accuracy
-4. **ID Formats**: Use string IDs with prefixes for business entities (EMP-, MNT-)
-5. **Indexing**: Add composite indexes for frequently filtered combinations
+### 6.4. Shadow Properties for Auditing
+Use a base class or interface `IAuditable` and configure via reflection in `OnModelCreating` to map the standard columns without polluting the domain models unless necessary.

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "invoiceNumber": "INV-2025-001",
+    "invoiceDate": "2025-01-15",
+    "vendor": "TechSupplier Inc.",
+    "assetIds": ["F3XVC24", "3CM4080DGT", "3CM4080D9Z", "2209019581"]
+  },
+  {
+    "id": "2",
+    "invoiceNumber": "INV-2025-002",
+    "invoiceDate": "2025-02-20",
+    "vendor": "Office Solutions Ltd.",
+    "assetIds": ["CFNVC24", "5N8NH9JX500095L"]
+  }
+]

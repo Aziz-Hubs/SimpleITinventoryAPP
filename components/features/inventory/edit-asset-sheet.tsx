@@ -80,49 +80,24 @@ import {
   ASSET_STATES,
   ASSET_LOCATIONS,
   Asset,
+  Model,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { updateAsset, deleteAsset } from "@/services/inventory-service";
 import { logActivity } from "@/services/dashboard-service";
-import modelsData from "@/data/models.json";
-
-interface ModelSpec {
-  name: string;
-  category: string;
-  make: string;
-  specs: {
-    cpu: string;
-    ram: string;
-    storage: string;
-    dedicatedgpu: string;
-    "usb-aports": string;
-    "usb-cports": string;
-    dimensions: string;
-    resolution: string;
-    refreshhertz: string;
-  };
-}
+import { useModels, useModelById } from "@/hooks/api/use-models";
+import { useEmployees } from "@/hooks/api/use-employees";
 
 // Schema for editing an asset
 const assetEditSchema = z.object({
   category: z.string().min(1, "Category is required"),
   state: z.string().min(1, "State is required"),
-  make: z.string().min(1, "Make is required"),
-  model: z.string().min(1, "Model is required"),
+  modelId: z.number().min(1, "Model is required"),
   servicetag: z.string().min(1, "Service tag is required"),
   warrantyexpiry: z.string().optional(),
   location: z.string().min(1, "Location is required"),
-  cpu: z.string().optional(),
-  ram: z.string().optional(),
-  storage: z.string().optional(),
-  dedicatedgpu: z.string().optional(),
-  "usb-aports": z.string().optional(),
-  "usb-cports": z.string().optional(),
-  dimensions: z.string().optional(),
-  resolution: z.string().optional(),
-  refreshhertz: z.string().optional(),
   additionalcomments: z.string().optional(),
-  employee: z.string().optional(),
+  employeeId: z.string().optional(),
 });
 
 type AssetEdit = z.infer<typeof assetEditSchema>;
@@ -151,31 +126,26 @@ export function EditAssetSheet({
     null
   );
 
+  const { data: models } = useModels();
+  const { data: employees } = useEmployees();
+
   const form = useForm<AssetEdit>({
     resolver: zodResolver(assetEditSchema),
     defaultValues: {
       category: "Laptop",
       state: "NEW",
-      make: "",
-      model: "",
+      modelId: 0,
       servicetag: "",
       warrantyexpiry: "",
       location: "Office",
-      cpu: "",
-      ram: "",
-      storage: "",
-      dedicatedgpu: "",
-      "usb-aports": "",
-      "usb-cports": "",
-      dimensions: "",
-      resolution: "",
-      refreshhertz: "",
       additionalcomments: "",
-      employee: "UNASSIGNED",
+      employeeId: "UNASSIGNED",
     },
   });
 
   const category = form.watch("category");
+  const modelId = form.watch("modelId");
+  const { data: selectedModel } = useModelById(modelId);
 
   // Populate form when asset changes
   React.useEffect(() => {
@@ -183,22 +153,12 @@ export function EditAssetSheet({
       const values: AssetEdit = {
         category: asset.category || "Laptop",
         state: asset.state || "NEW",
-        make: asset.make || "",
-        model: asset.model || "",
+        modelId: asset.modelId || 0,
         servicetag: asset.servicetag || "",
         warrantyexpiry: asset.warrantyexpiry || "",
         location: asset.location || "Office",
-        cpu: asset.cpu || "",
-        ram: asset.ram || "",
-        storage: asset.storage || "",
-        dedicatedgpu: asset.dedicatedgpu || "",
-        "usb-aports": asset["usb-aports"] || "",
-        "usb-cports": asset["usb-cports"] || "",
-        dimensions: asset.dimensions || "",
-        resolution: asset.resolution || "",
-        refreshhertz: asset.refreshhertz || "",
         additionalcomments: asset.additionalcomments || "",
-        employee: asset.employee || "UNASSIGNED",
+        employeeId: asset.employeeId || "UNASSIGNED",
       };
       form.reset(values);
       setOriginalValues(values);
@@ -275,33 +235,20 @@ export function EditAssetSheet({
     }
   };
 
-  const handleModelSelect = (modelSpec: ModelSpec) => {
-    form.setValue("model", modelSpec.name);
-    form.setValue("make", modelSpec.make);
-
-    // Auto-fill specs
-    form.setValue("cpu", modelSpec.specs.cpu || "");
-    form.setValue("ram", modelSpec.specs.ram || "");
-    form.setValue("storage", modelSpec.specs.storage || "");
-    form.setValue("dedicatedgpu", modelSpec.specs.dedicatedgpu || "");
-    form.setValue("usb-aports", modelSpec.specs["usb-aports"] || "");
-    form.setValue("usb-cports", modelSpec.specs["usb-cports"] || "");
-    form.setValue("dimensions", modelSpec.specs.dimensions || "");
-    form.setValue("resolution", modelSpec.specs.resolution || "");
-    form.setValue("refreshhertz", modelSpec.specs.refreshhertz || "");
-
-    toast.info(`Auto-filled specs for ${modelSpec.name}`);
+  const handleModelSelect = (model: Model) => {
+    form.setValue("modelId", model.id);
+    toast.info(`Selected model ${model.name}`);
   };
 
   const [openModelCombobox, setOpenModelCombobox] = React.useState(false);
 
   // Memoized available models based on category
   const availableModels = React.useMemo(() => {
-    if (!category) return modelsData as ModelSpec[];
-    return (modelsData as ModelSpec[]).filter(
+    if (!category || !models) return [];
+    return models.data.filter(
       (m) => m.category.toLowerCase() === category.toLowerCase()
     );
-  }, [category]);
+  }, [category, models]);
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -465,30 +412,10 @@ export function EditAssetSheet({
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="make"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                              Make *
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g. Dell"
-                                className="h-10 bg-background/50 border-muted-foreground/20"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
                       <div className="col-span-1">
                         <FormField
                           control={form.control}
-                          name="model"
+                          name="modelId"
                           render={({ field }) => (
                             <FormItem className="col-span-1 flex flex-col">
                               <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -512,8 +439,8 @@ export function EditAssetSheet({
                                       {field.value
                                         ? availableModels.find(
                                             (model) =>
-                                              model.name === field.value
-                                          )?.name || field.value
+                                              model.id === field.value
+                                          )?.name
                                         : "Select model..."}
                                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -532,7 +459,7 @@ export function EditAssetSheet({
                                       <CommandGroup>
                                         {availableModels.map((model) => (
                                           <CommandItem
-                                            key={model.name}
+                                            key={model.id}
                                             value={model.name}
                                             onSelect={() => {
                                               handleModelSelect(model);
@@ -550,7 +477,7 @@ export function EditAssetSheet({
                                             <Check
                                               className={cn(
                                                 "ml-auto h-4 w-4",
-                                                field.value === model.name
+                                                field.value === model.id
                                                   ? "opacity-100"
                                                   : "opacity-0"
                                               )}
@@ -563,7 +490,6 @@ export function EditAssetSheet({
                                 </PopoverContent>
                               </Popover>
                               <FormMessage />
-                              <input type="hidden" {...field} />
                             </FormItem>
                           )}
                         />
@@ -591,8 +517,7 @@ export function EditAssetSheet({
                     </div>
                   </div>
 
-                  {/* Smart Specs Fields */}
-                  {(category === "Laptop" || category === "Desktop") && (
+                  {selectedModel && (
                     <div className="space-y-5 rounded-2xl border bg-card/40 p-6 shadow-sm backdrop-blur-sm relative overflow-hidden">
                       <div className="flex items-center gap-2 mb-2 pb-2 border-b">
                         <IconSettings className="h-4 w-4 text-primary" />
@@ -601,215 +526,12 @@ export function EditAssetSheet({
                         </h3>
                       </div>
                       <div className="grid grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="cpu"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                CPU
-                              </FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <IconCpu className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground/60" />
-                                  <Input
-                                    placeholder="e.g. Core i7"
-                                    className="pl-9 h-10 bg-background/50"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="ram"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                RAM
-                              </FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <IconCpu className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground/60" />
-                                  <Input
-                                    placeholder="e.g. 16GB"
-                                    className="pl-9 h-10 bg-background/50"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="storage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Storage
-                              </FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <IconDatabase className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground/60" />
-                                  <Input
-                                    placeholder="e.g. 512GB"
-                                    className="pl-9 h-10 bg-background/50"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="dedicatedgpu"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Dedicated GPU
-                              </FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <IconScreenShare className="absolute left-3 top-3 h-3.5 w-3.5 text-muted-foreground/60" />
-                                  <Input
-                                    placeholder="e.g. RTX 3050"
-                                    className="pl-9 h-10 bg-background/50"
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {(category === "Monitor" || category === "TV") && (
-                    <div className="space-y-5 rounded-2xl border bg-card/40 p-6 shadow-sm backdrop-blur-sm relative overflow-hidden">
-                      <div className="flex items-center gap-2 mb-2 pb-2 border-b">
-                        <IconScreenShare className="h-4 w-4 text-primary" />
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
-                          Display Information
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="dimensions"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Dimensions
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. 27 inch"
-                                  className="h-10 bg-background/50"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="resolution"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Resolution
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. 4K"
-                                  className="h-10 bg-background/50"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="refreshhertz"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Refresh Rate
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. 144Hz"
-                                  className="h-10 bg-background/50"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {category === "Docking" && (
-                    <div className="space-y-5 rounded-2xl border bg-card/40 p-6 shadow-sm backdrop-blur-sm relative overflow-hidden">
-                      <div className="flex items-center gap-2 mb-2 pb-2 border-b">
-                        <IconUsb className="h-4 w-4 text-primary" />
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/80">
-                          Connectivity
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="usb-aports"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                USB-A Ports
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. 3"
-                                  className="h-10 bg-background/50"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="usb-cports"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                USB-C Ports
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. 1"
-                                  className="h-10 bg-background/50"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {Object.entries(selectedModel.specs).map(([key, value]) => (
+                          <div key={key}>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{key}</p>
+                            <p>{String(value)}</p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

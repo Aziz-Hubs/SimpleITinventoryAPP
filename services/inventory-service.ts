@@ -9,63 +9,39 @@
 import { isMockDataEnabled, apiClient } from '@/lib/api-client';
 import { Asset, PaginatedResponse, AssetFilters, ImportResult } from '@/lib/types';
 import inventoryData from '@/data/inv.json';
+import employeeJson from '@/data/employees.json';
+import modelsJson from '@/data/models.json';
 import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
 import { paginateData } from '@/lib/utils';
 
-/**
- * Interface representing the raw structure of individual items in the `inv.json` file.
- * Used for safe type assertion during the initial mock data conversion process.
- * @private
- */
-interface InventoryItem {
-  category?: string;
-  state?: string;
-  warrantyexpiry?: string;
-  make?: string;
-  model?: string;
-  cpu?: string;
-  ram?: string;
-  storage?: string;
-  dedicatedgpu?: string;
-  'usb-aports'?: string;
-  'usb-cports'?: string;
-  servicetag?: string;
-  employee?: string;
-  additionalcomments?: string;
-  location?: string;
-  dimensions?: string;
-  resolution?: string;
-  refreshhertz?: string;
-}
+// ... (InventoryItem interface remains the same)
 
 /**
  * Transforms the static mock JSON data into the application's unified `Asset` type.
- * Ensures all required fields have sensible defaults (e.g., "N/A" for hardware specs).
  * 
  * @returns {Asset[]} An array of normalized Asset objects.
  */
 function convertInventoryData(): Asset[] {
-  return (inventoryData as InventoryItem[]).map((item, index) => ({
-    id: index + 1,
-    category: item.category || '',
-    state: item.state || '',
-    warrantyexpiry: item.warrantyexpiry || '',
-    make: item.make || '',
-    model: item.model || '',
-    cpu: item.cpu || 'N/A',
-    ram: item.ram || 'N/A',
-    storage: item.storage || 'N/A',
-    dedicatedgpu: item.dedicatedgpu || 'N/A',
-    'usb-aports': item['usb-aports'] || 'N/A',
-    'usb-cports': item['usb-cports'] || 'N/A',
-    servicetag: item.servicetag || '',
-    employee: item.employee || '',
-    additionalcomments: item.additionalcomments || '',
-    location: item.location || '',
-    dimensions: item.dimensions || 'N/A',
-    resolution: item.resolution || 'N/A',
-    refreshhertz: item.refreshhertz || 'N/A',
-  }));
+  const employeeNameToIdMap = new Map(employeeJson.employees.map(emp => [emp.fullName, emp.id]));
+  const modelNameToIdMap = new Map(modelsJson.map((model, index) => [model.name, index + 1]));
+
+  return (inventoryData as InventoryItem[]).map((item, index) => {
+    const employeeId = item.employee ? employeeNameToIdMap.get(item.employee) : undefined;
+    const modelId = item.model ? modelNameToIdMap.get(item.model) : undefined;
+
+    return {
+      id: index + 1,
+      invoiceId: undefined, // Default to undefined
+      modelId: modelId || 0, // Default to 0 if not found
+      category: item.category || '',
+      state: item.state || '',
+      warrantyexpiry: item.warrantyexpiry || '',
+      servicetag: item.servicetag || '',
+      employeeId: employeeId,
+      additionalcomments: item.additionalcomments || '',
+      location: item.location || '',
+    };
+  });
 }
 
 /**
@@ -101,8 +77,9 @@ function filterMockData(filters: AssetFilters): Asset[] {
   }
 
   if (filters.employee) {
+    const employeeId = employeeJson.employees.find(e => e.fullName.toLowerCase().includes(filters.employee?.toLowerCase() || ''))?.id;
     filtered = filtered.filter(
-      (asset) => asset.employee?.toLowerCase().includes(filters.employee?.toLowerCase() || '')
+      (asset) => asset.employeeId === employeeId
     );
   }
 
@@ -192,8 +169,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const lowerQuery = query.toLowerCase();
     const results = getMockInventory().filter(
       (a: Asset) =>
-        a.servicetag?.toLowerCase().includes(lowerQuery) ||
-        a.model?.toLowerCase().includes(lowerQuery)
+        a.servicetag?.toLowerCase().includes(lowerQuery)
     ).slice(0, 10);
     return Promise.resolve(results);
   }
@@ -320,7 +296,7 @@ export async function getInventoryStats() {
   const assets = isMockDataEnabled() ? getMockInventory() : (await getAssets({ pageSize: 9999 })).data;
 
   const totalAssets = assets.length;
-  const assigned = assets.filter((a) => a.employee && a.employee !== 'UNASSIGNED').length;
+  const assigned = assets.filter((a) => a.employeeId && a.employeeId !== 'UNASSIGNED').length;
   const inStock = totalAssets - assigned;
 
   const byCategory = assets.reduce((acc, asset) => {

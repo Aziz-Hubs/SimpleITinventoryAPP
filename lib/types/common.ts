@@ -1,8 +1,13 @@
-/**
- * @file common.ts
- * @description Defines shared interfaces for API responses, dashboard statistics, activities, and data import results.
- * @path /lib/types/common.ts
- */
+import { z } from 'zod';
+
+export const auditableEntitySchema = z.object({
+  tenantId: z.string().uuid(),
+  createdAt: z.string().datetime(),
+  createdBy: z.string(),
+  updatedAt: z.string().datetime(),
+  updatedBy: z.string(),
+  rowVersion: z.string(), // Assuming rowversion is handled as a string
+});
 
 /**
  * High-level metrics for the dashboard visualization.

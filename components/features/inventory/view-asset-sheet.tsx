@@ -12,8 +12,10 @@ import {
   ShieldCheck,
   History,
 } from "lucide-react";
-import { Asset } from "@/lib/types";
+import { Asset, Model } from "@/lib/types";
 import { EmployeeAssetsDialog } from "@/components/features/employees/employee-assets-dialog";
+import { useModelById } from "@/hooks/api/use-models";
+import { useEmployee } from "@/hooks/api/use-employees";
 
 interface ViewAssetDialogProps {
   asset: Asset | null;
@@ -36,6 +38,32 @@ const getStateVariant = (state: string) => {
   }
 };
 
+const renderSpecs = (model: Model) => {
+  if (!model) return null;
+  switch (model.category) {
+    case "Laptop":
+    case "Desktop":
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <p>CPU: {model.specs.cpu}</p>
+          <p>RAM: {model.specs.ram}</p>
+          <p>Storage: {model.specs.storage}</p>
+          <p>GPU: {model.specs.dedicatedgpu}</p>
+        </div>
+      );
+    case "Monitor":
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <p>Dimensions: {model.specs.dimensions}</p>
+          <p>Resolution: {model.specs.resolution}</p>
+          <p>Refresh Rate: {model.specs.refreshhertz}</p>
+        </div>
+      );
+    default:
+      return <p>No technical specifications available for this category.</p>;
+  }
+};
+
 export function ViewAssetSheet({
   asset,
   open,
@@ -43,8 +71,10 @@ export function ViewAssetSheet({
   sheetColor = "#3b82f6", // Default Blue
 }: ViewAssetDialogProps & { sheetColor?: string }) {
   const [isEmployeeSheetOpen, setIsEmployeeSheetOpen] = useState(false);
+  const { data: model } = useModelById(asset?.modelId || 0);
+  const { data: employee } = useEmployee(asset?.employeeId);
 
-  if (!asset) return null;
+  if (!asset || !model) return null;
 
   return (
     <>
@@ -52,7 +82,7 @@ export function ViewAssetSheet({
         open={open}
         onOpenChange={onOpenChange}
         sheetColor={sheetColor}
-        title={`${asset.make} ${asset.model}`}
+        title={`${model.make} ${model.name}`}
         description="Full technical specifications and lifecycle activity for this device."
         icon={<Box className="h-6 w-6" />}
         headerContent={
@@ -120,6 +150,7 @@ export function ViewAssetSheet({
               </span>
             </div>
           </div>
+          {renderSpecs(model)}
         </div>
 
         {/* Current Ownership */}
@@ -137,25 +168,25 @@ export function ViewAssetSheet({
           </div>
           <div
             className={`flex items-center gap-4 rounded-xl border bg-muted/20 p-4 transition-all hover:bg-muted/30 group ${
-              asset.employee !== "UNASSIGNED"
+              employee
                 ? "cursor-pointer hover:shadow-md hover:border-primary/20"
                 : ""
             }`}
             onClick={() => {
-              if (asset.employee !== "UNASSIGNED") {
+              if (employee) {
                 setIsEmployeeSheetOpen(true);
               }
             }}
           >
-            {asset.employee === "UNASSIGNED" ? (
+            {!employee ? (
               <div className="h-14 w-14 flex items-center justify-center rounded-xl bg-muted border-2 border-dashed group-hover:border-primary/20 transition-colors">
                 <CircleUser className="h-7 w-7 text-muted-foreground/50" />
               </div>
             ) : (
               <Avatar className="h-14 w-14 rounded-xl border-2 border-background shadow-md">
                 <AvatarImage
-                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${asset.employee}`}
-                  alt={asset.employee}
+                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${employee.fullName}`}
+                  alt={employee.fullName}
                 />
                 <AvatarFallback
                   className="rounded-xl font-bold"
@@ -165,26 +196,26 @@ export function ViewAssetSheet({
                     color: "var(--sheet-color)",
                   }}
                 >
-                  {asset.employee.slice(0, 2).toUpperCase()}
+                  {employee.fullName.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             )}
             <div className="flex flex-col gap-1">
               <span className="text-base font-bold tracking-tight">
-                {asset.employee === "UNASSIGNED"
+                {!employee
                   ? "In Storage / Ready"
-                  : asset.employee}
+                  : employee.fullName}
               </span>
               <div className="flex items-center gap-2">
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    asset.employee === "UNASSIGNED"
+                    !employee
                       ? "bg-muted-foreground/30"
                       : "bg-emerald-500"
                   }`}
                 />
                 <span className="text-xs font-medium text-muted-foreground italic">
-                  {asset.employee === "UNASSIGNED"
+                  {!employee
                     ? "Inventory Control"
                     : "Click to view profile"}
                 </span>
@@ -256,7 +287,7 @@ export function ViewAssetSheet({
       </BaseDetailSheet>
 
       <EmployeeAssetsDialog
-        employeeName={asset.employee}
+        employeeName={employee?.fullName || ""}
         open={isEmployeeSheetOpen}
         onOpenChange={setIsEmployeeSheetOpen}
       />

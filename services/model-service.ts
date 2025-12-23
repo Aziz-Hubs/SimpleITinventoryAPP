@@ -20,20 +20,12 @@ interface RawModel {
   category: string;
   make: string;
   specs: {
-    cpu?: string;
-    ram?: string;
-    storage?: string;
-    dedicatedgpu?: string;
-    'usb-aports'?: string;
-    'usb-cports'?: string;
-    dimensions?: string;
-    resolution?: string;
-    refreshhertz?: string;
+    [key: string]: string | number | boolean | undefined;
   };
 }
 
 /**
- * Transforms the nested static mock JSON data into the application's unified flat `Model` type.
+ * Transforms the nested static mock JSON data into the application's unified `Model` type.
  * 
  * @returns {Model[]} An array of normalized Model objects.
  */
@@ -43,16 +35,8 @@ function convertModelData(): Model[] {
     name: item.name,
     category: item.category,
     make: item.make,
-    cpu: item.specs.cpu || 'N/A',
-    ram: item.specs.ram || 'N/A',
-    storage: item.specs.storage || 'N/A',
-    dedicatedgpu: item.specs.dedicatedgpu || 'N/A',
-    'usb-aports': item.specs['usb-aports'] || 'N/A',
-    'usb-cports': item.specs['usb-cports'] || 'N/A',
-    dimensions: item.specs.dimensions || 'N/A',
-    resolution: item.specs.resolution || 'N/A',
-    refreshhertz: item.specs.refreshhertz || 'N/A',
-  }));
+    specs: item.specs,
+  } as Model));
 }
 
 /**

@@ -124,4 +124,5 @@ export const STORAGE_KEYS = {
   MAINTENANCE: 'it_maintenance_data',
   ACTIVITIES: 'it_activity_data',
   MODELS: 'it_models_data',
+  INVOICES: 'it_invoices_data',
 };

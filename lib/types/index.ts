@@ -10,3 +10,6 @@ export * from './employee';
 export * from './maintenance';
 export * from './common';
 export * from './model';
+export * from './tenant';
+export * from './invoice';
+export * from './invoice-line-item';
