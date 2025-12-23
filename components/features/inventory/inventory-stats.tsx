@@ -55,8 +55,15 @@ export function InventoryStats({
   const utilizationRate =
     Math.round((assignedCount / assets.length) * 100) || 0;
 
-  // 2. Calculate Estimated Value (Mock prices)
-  const getValue = (category: string | undefined) => {
+  // 2. Calculate Total Value (from actual prices or fallback estimates)
+  const getValue = (asset: Asset) => {
+    // Use actual price if available
+    if (asset.price && asset.price > 0) {
+      return asset.price;
+    }
+
+    // Fallback to category-based estimates
+    const category = asset.category;
     if (!category) return 100;
     switch (category.toLowerCase()) {
       case "laptop":
@@ -68,25 +75,33 @@ export function InventoryStats({
       case "server":
         return 5000;
       case "switch":
+      case "network switch":
         return 1500;
       case "docking":
         return 200;
       case "headset":
         return 150;
       case "network":
+      case "firewall":
+      case "access point":
         return 500;
       case "printer":
         return 400;
       case "desktop":
         return 1500;
+      case "5g/4g modem":
+        return 300;
+      case "ups":
+        return 250;
+      case "nvr":
+        return 600;
+      case "tv":
+        return 800;
       default:
         return 100;
     }
   };
-  const totalValue = assets.reduce(
-    (acc, curr) => acc + getValue(curr.category),
-    0
-  );
+  const totalValue = assets.reduce((acc, curr) => acc + getValue(curr), 0);
 
   // 3. Category Breakdown
   const categories = assets.reduce((acc, curr) => {

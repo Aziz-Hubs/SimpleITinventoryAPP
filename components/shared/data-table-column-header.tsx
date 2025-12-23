@@ -54,7 +54,13 @@ export function DataTableColumnHeader<TData, TValue>({
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const [open, setOpen] = React.useState(false);
 
-  const filterValue = (column.getFilterValue() ?? "") as string;
+  // Support both single string and array of strings for multi-select
+  const rawFilterValue = column.getFilterValue();
+  const filterValue = React.useMemo(() => {
+    if (!rawFilterValue) return [];
+    if (Array.isArray(rawFilterValue)) return rawFilterValue as string[];
+    return [rawFilterValue as string];
+  }, [rawFilterValue]);
 
   /**
    * Extracts unique values from the column data for the suggest-and-filter UI.
@@ -90,9 +96,11 @@ export function DataTableColumnHeader<TData, TValue>({
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
 
-            {/* Visual Dot: indicates an active filter is applied to this specific column */}
-            {(column.getFilterValue() as string)?.length > 0 && (
-              <span className="ml-1 flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+            {/* Visual Badge: shows count of active filters */}
+            {filterValue.length > 0 && (
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {filterValue.length}
+              </span>
             )}
           </Button>
         </PopoverTrigger>
@@ -102,11 +110,11 @@ export function DataTableColumnHeader<TData, TValue>({
         >
           {/* Sorting Actions */}
           <div className="p-2 border-b border-border/50 bg-muted/20">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 h-8 justify-start text-xs font-semibold"
+                className="w-full h-8 justify-start text-xs font-semibold"
                 onClick={() => {
                   column.toggleSorting(false);
                   setOpen(false);
@@ -118,7 +126,7 @@ export function DataTableColumnHeader<TData, TValue>({
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 h-8 justify-start text-xs font-semibold"
+                className="w-full h-8 justify-start text-xs font-semibold"
                 onClick={() => {
                   column.toggleSorting(true);
                   setOpen(false);
@@ -133,9 +141,12 @@ export function DataTableColumnHeader<TData, TValue>({
           {/* Filtering Engine */}
           <Command className="rounded-none">
             <CommandInput
-              placeholder={`Filter ${title}...`}
-              value={Array.isArray(filterValue) ? "" : String(filterValue)}
-              onValueChange={(val) => column.setFilterValue(val)}
+              placeholder={
+                filterValue.length > 0
+                  ? `${filterValue.length} selected - Filter ${title}...`
+                  : `Filter ${title}...`
+              }
+              value=""
               className="h-9 border-none focus:ring-0"
             />
             <CommandList className="max-h-[200px]">
@@ -153,18 +164,33 @@ export function DataTableColumnHeader<TData, TValue>({
                       key={value}
                       className="text-sm cursor-pointer"
                       onSelect={() => {
-                        // Toggle Logic: If clicking the active filter, clear it.
-                        if (column.getFilterValue() === value) {
-                          column.setFilterValue(undefined);
+                        // Multi-select toggle logic
+                        const currentFilters = filterValue;
+                        const isSelected = currentFilters.includes(
+                          String(value)
+                        );
+
+                        let newFilters: string[];
+                        if (isSelected) {
+                          // Remove from array
+                          newFilters = currentFilters.filter(
+                            (v) => v !== String(value)
+                          );
                         } else {
-                          column.setFilterValue(value);
+                          // Add to array
+                          newFilters = [...currentFilters, String(value)];
                         }
+
+                        // Set undefined if empty, otherwise set the array
+                        column.setFilterValue(
+                          newFilters.length > 0 ? newFilters : undefined
+                        );
                       }}
                     >
                       <div
                         className={cn(
                           "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary transition-all",
-                          column.getFilterValue() === value
+                          filterValue.includes(String(value))
                             ? "bg-primary text-primary-foreground"
                             : "opacity-50 [&_svg]:invisible"
                         )}
@@ -177,7 +203,7 @@ export function DataTableColumnHeader<TData, TValue>({
                 </CommandGroup>
               )}
 
-              {filterValue && (
+              {filterValue.length > 0 && (
                 <>
                   <CommandSeparator />
                   <CommandGroup>

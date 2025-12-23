@@ -64,8 +64,9 @@ export function useTableParams() {
       const search = current.toString();
       const query = search ? `?${search}` : '';
       
-      // Use scroll: false to prevent the page from jumping to top on filter change
-      router.push(`${pathname}${query}`, { scroll: false });
+      // Use replace instead of push to prevent full page resets
+      // scroll: false prevents the page from jumping to top on filter change
+      router.replace(`${pathname}${query}`, { scroll: false });
     },
     [router, pathname, searchParams]
   );

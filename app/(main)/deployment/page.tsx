@@ -76,7 +76,7 @@ import {
   updateMaintenanceRecord,
   exportMaintenanceReport,
 } from "@/services/maintenance-service";
-import type { MaintenanceRecord } from "@/lib/types";
+import { MaintenanceRecord, MaintenanceStatusEnum } from "@/lib/types";
 
 export default function DeploymentOperationsPage() {
   const [onboardOpen, setOnboardOpen] = React.useState(false);
@@ -750,13 +750,13 @@ export default function DeploymentOperationsPage() {
                         (r) => r.category === category
                       );
                       const pending = categoryRecords.filter(
-                        (r) => r.status === "pending"
+                        (r) => r.status === MaintenanceStatusEnum.Pending
                       ).length;
                       const inProgress = categoryRecords.filter(
-                        (r) => r.status === "in-progress"
+                        (r) => r.status === MaintenanceStatusEnum.InProgress
                       ).length;
                       const completed = categoryRecords.filter(
-                        (r) => r.status === "completed"
+                        (r) => r.status === MaintenanceStatusEnum.Completed
                       ).length;
 
                       return (
@@ -766,17 +766,23 @@ export default function DeploymentOperationsPage() {
                           </TableCell>
                           <TableCell>{categoryRecords.length}</TableCell>
                           <TableCell>
-                            <StatusBadge variant="pending">
+                            <StatusBadge
+                              variant={MaintenanceStatusEnum.Pending}
+                            >
                               {pending}
                             </StatusBadge>
                           </TableCell>
                           <TableCell>
-                            <StatusBadge variant="in-progress">
+                            <StatusBadge
+                              variant={MaintenanceStatusEnum.InProgress}
+                            >
                               {inProgress}
                             </StatusBadge>
                           </TableCell>
                           <TableCell>
-                            <StatusBadge variant="completed">
+                            <StatusBadge
+                              variant={MaintenanceStatusEnum.Completed}
+                            >
                               {completed}
                             </StatusBadge>
                           </TableCell>

@@ -25,27 +25,6 @@ import { usePathname } from "next/navigation";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { cn } from "@/lib/utils";
 
-const containerVariants = {
-  visible: {
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -10 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 300,
-      damping: 24,
-    },
-  },
-};
-
 export function NavMain({
   items,
   onQuickAdjust,
@@ -108,34 +87,24 @@ export function NavMain({
             </Button>
           </SidebarMenuItem>
         </SidebarMenu>
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <SidebarMenu>
-            {items.map((item) => (
-              <motion.div
-                key={item.title}
-                variants={itemVariants}
-                whileHover={{ x: 4 }}
-              >
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    asChild
-                    isActive={pathname === item.url}
-                  >
-                    <Link href={item.url} prefetch={false}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </motion.div>
-            ))}
-          </SidebarMenu>
-        </motion.div>
+        <SidebarMenu>
+          {items.map((item) => (
+            <motion.div key={item.title} whileHover={{ x: 4 }}>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={item.title}
+                  asChild
+                  isActive={pathname === item.url}
+                >
+                  <Link href={item.url} prefetch={false}>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </motion.div>
+          ))}
+        </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
   );

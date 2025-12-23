@@ -42,7 +42,7 @@ export function SearchPalette({
           {assets.map((asset) => (
             <CommandItem
               key={asset.id}
-              value={`${asset.make} ${asset.model} ${asset.servicetag}`}
+              value={`${asset.make} ${asset.model} ${asset.serviceTag}`}
             >
               <IconBox className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
@@ -50,7 +50,7 @@ export function SearchPalette({
                   {asset.make} {asset.model}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  TAG: {asset.servicetag} • {asset.employee}
+                  TAG: {asset.serviceTag} • {asset.employee}
                 </span>
               </div>
             </CommandItem>

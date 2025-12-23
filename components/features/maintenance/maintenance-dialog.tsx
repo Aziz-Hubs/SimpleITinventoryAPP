@@ -40,7 +40,6 @@ import {
 } from "@/services/inventory-service";
 import techniciansData from "@/data/technicians.json";
 import { logActivity } from "@/services/dashboard-service";
-import type { MaintenanceCategory, MaintenancePriority } from "@/lib/types";
 import {
   IconLoader2,
   IconTag,
@@ -70,7 +69,13 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Asset } from "@/lib/types";
+import {
+  MaintenanceCategory,
+  MaintenancePriority,
+  MaintenancePriorityEnum,
+  MaintenanceStatusEnum,
+  Asset,
+} from "@/lib/types";
 
 interface MaintenanceDialogProps {
   open: boolean;
@@ -115,7 +120,7 @@ export function MaintenanceDialog({
     issue: "",
     description: "",
     category: "hardware" as MaintenanceCategory,
-    priority: "medium" as MaintenancePriority,
+    priority: MaintenancePriorityEnum.Medium,
     technician: "",
     scheduledDate: "",
     estimatedCost: "",
@@ -146,7 +151,7 @@ export function MaintenanceDialog({
           // Check if we have an exact match in suggestions first to avoid API call
           const exactMatch = suggestions.find(
             (s) =>
-              s.servicetag.toLowerCase() === formData.assetTag.toLowerCase()
+              s.serviceTag.toLowerCase() === formData.assetTag.toLowerCase()
           );
 
           let asset: Asset | null | undefined = exactMatch;
@@ -214,15 +219,17 @@ export function MaintenanceDialog({
 
     try {
       await createMaintenanceRequest({
+        tenantId: "00000000-0000-0000-0000-000000000000",
         assetTag: formData.assetTag,
         assetCategory: formData.assetCategory,
         assetMake: formData.assetMake,
         assetModel: formData.assetModel,
-        reportedBy: "Current User", // Replace with actual user context
+        reportedBy: "Current User",
+        reportedDate: new Date().toISOString(),
         issue: formData.issue,
         description: formData.description,
         category: formData.category,
-        status: "pending",
+        status: MaintenanceStatusEnum.Pending,
         priority: formData.priority,
         technician: formData.technician || undefined,
         scheduledDate: formData.scheduledDate || undefined,
@@ -248,7 +255,7 @@ export function MaintenanceDialog({
         issue: "",
         description: "",
         category: "hardware",
-        priority: "medium",
+        priority: MaintenancePriorityEnum.Medium,
         technician: "",
         scheduledDate: "",
         estimatedCost: "",
@@ -359,18 +366,18 @@ export function MaintenanceDialog({
                               {suggestions.map((asset) => (
                                 <CommandItem
                                   key={asset.id}
-                                  value={asset.servicetag}
+                                  value={asset.serviceTag}
                                   onSelect={() => {
                                     setFormData((prev) => ({
                                       ...prev,
-                                      assetTag: asset.servicetag,
+                                      assetTag: asset.serviceTag,
                                     }));
                                     setOpenCombobox(false);
                                   }}
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-bold">
-                                      {asset.servicetag}
+                                      {asset.serviceTag}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       {asset.make} {asset.model}
@@ -379,7 +386,7 @@ export function MaintenanceDialog({
                                   <Check
                                     className={cn(
                                       "ml-auto h-4 w-4",
-                                      formData.assetTag === asset.servicetag
+                                      formData.assetTag === asset.serviceTag
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}

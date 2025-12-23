@@ -7,14 +7,26 @@
  */
 
 import { isMockDataEnabled, apiClient } from '@/lib/api-client';
-import { Asset, PaginatedResponse, AssetFilters, ImportResult } from '@/lib/types';
+import { Asset, AssetCreate, PaginatedResponse, AssetFilters, ImportResult, AssetStateEnum, ASSET_STATES } from '@/lib/types';
 import inventoryData from '@/data/inv.json';
 import employeeJson from '@/data/employees.json';
 import modelsJson from '@/data/models.json';
 import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
 import { paginateData } from '@/lib/utils';
 
-// ... (InventoryItem interface remains the same)
+interface InventoryItem {
+  id: number;
+  category: string;
+  state: string;
+  make: string;
+  model: string;
+  servicetag: string;
+  warrantyexpiry: string;
+  location: string;
+  additionalcomments: string;
+  employee: string;
+  specs?: Record<string, string | number | boolean | undefined>;
+}
 
 /**
  * Transforms the static mock JSON data into the application's unified `Asset` type.
@@ -28,18 +40,34 @@ function convertInventoryData(): Asset[] {
   return (inventoryData as InventoryItem[]).map((item, index) => {
     const employeeId = item.employee ? employeeNameToIdMap.get(item.employee) : undefined;
     const modelId = item.model ? modelNameToIdMap.get(item.model) : undefined;
+    
+    // Map state string to Enum. Default to New if not found.
+    const stateString = item.state?.toUpperCase() || "NEW";
+    const state = Object.values(AssetStateEnum).includes(stateString as AssetStateEnum)
+      ? (stateString as AssetStateEnum)
+      : AssetStateEnum.New;
 
     return {
       id: index + 1,
-      invoiceId: undefined, // Default to undefined
+      invoiceLineItemId: null,
       modelId: modelId || 0, // Default to 0 if not found
-      category: item.category || '',
-      state: item.state || '',
-      warrantyexpiry: item.warrantyexpiry || '',
-      servicetag: item.servicetag || '',
-      employeeId: employeeId,
-      additionalcomments: item.additionalcomments || '',
+      make: item.make || '',
+      model: item.model || '',
+      state: state as AssetStateEnum,
+      warrantyExpiry: item.warrantyexpiry || null,
+      serviceTag: item.servicetag || '',
+      employeeId: employeeId || null,
+      employee: item.employee,
+      notes: item.additionalcomments || null,
       location: item.location || '',
+      category: item.category || '',
+      tenantId: "default",
+      isDeleted: false,
+      rowVersion: "0x00",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "system",
+      updatedBy: "system"
     };
   });
 }
@@ -64,6 +92,7 @@ function getMockInventory(): Asset[] {
 function filterMockData(filters: AssetFilters): Asset[] {
   let filtered = getMockInventory();
 
+  // Category filtering - use the category field directly on Asset
   if (filters.category) {
     filtered = filtered.filter(
       (asset) => asset.category?.toLowerCase() === filters.category?.toLowerCase()
@@ -72,11 +101,16 @@ function filterMockData(filters: AssetFilters): Asset[] {
 
   if (filters.state) {
     filtered = filtered.filter(
-      (asset) => asset.state?.toLowerCase() === filters.state?.toLowerCase()
+      (asset) => asset.state === filters.state
     );
   }
 
-  if (filters.employee) {
+  if (filters.employeeId) {
+    filtered = filtered.filter(
+      (asset) => asset.employeeId === filters.employeeId
+    );
+  } else if (filters.employee) {
+    // Legacy string filter support if needed
     const employeeId = employeeJson.employees.find(e => e.fullName.toLowerCase().includes(filters.employee?.toLowerCase() || ''))?.id;
     filtered = filtered.filter(
       (asset) => asset.employeeId === employeeId
@@ -147,13 +181,13 @@ export async function getAssetById(id: number): Promise<Asset> {
 export async function getAssetByServiceTag(serviceTag: string): Promise<Asset | null> {
   if (isMockDataEnabled()) {
     const asset = getMockInventory().find(
-      (a: Asset) => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()
+      (a: Asset) => a.serviceTag?.toLowerCase() === serviceTag.toLowerCase()
     );
     return Promise.resolve(asset || null);
   }
 
   const response = await getAssets({ search: serviceTag });
-  return response.data.find(a => a.servicetag?.toLowerCase() === serviceTag.toLowerCase()) || null;
+  return response.data.find(a => a.serviceTag?.toLowerCase() === serviceTag.toLowerCase()) || null;
 }
 
 /**
@@ -169,7 +203,7 @@ export async function searchAssets(query: string): Promise<Asset[]> {
     const lowerQuery = query.toLowerCase();
     const results = getMockInventory().filter(
       (a: Asset) =>
-        a.servicetag?.toLowerCase().includes(lowerQuery)
+        a.serviceTag?.toLowerCase().includes(lowerQuery)
     ).slice(0, 10);
     return Promise.resolve(results);
   }
@@ -185,12 +219,26 @@ export async function searchAssets(query: string): Promise<Asset[]> {
  * @sideeffect Updates localStorage in mock mode.
  * @returns {Promise<Asset>} The created asset with its new ID.
  */
-export async function createAsset(asset: Omit<Asset, 'id'>): Promise<Asset> {
+/**
+ * Persists a new asset to the system.
+ * 
+ * @param asset - The asset data excluding auto-generated ID.
+ * @sideeffect Updates localStorage in mock mode.
+ * @returns {Promise<Asset>} The created asset with its new ID.
+ */
+export async function createAsset(asset: AssetCreate): Promise<Asset> {
   if (isMockDataEnabled()) {
     const inventory = getMockInventory();
     const newAsset: Asset = {
       ...asset,
       id: inventory.length > 0 ? Math.max(...inventory.map(a => a.id || 0)) + 1 : 1,
+      invoiceLineItemId: asset.invoiceLineItemId ?? null,
+      rowVersion: "0x00",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "current-user",
+      updatedBy: "current-user",
+      tenantId: "default"
     };
     MockStorage.add(STORAGE_KEYS.INVENTORY, newAsset);
     return Promise.resolve(newAsset);
@@ -299,14 +347,17 @@ export async function getInventoryStats() {
   const assigned = assets.filter((a) => a.employeeId && a.employeeId !== 'UNASSIGNED').length;
   const inStock = totalAssets - assigned;
 
+  // Since Asset doesn't have category string, we need to lookup via Model
+  const modelIdToCategoryMap = new Map(modelsJson.map((model, index) => [index + 1, model.category]));
+  
   const byCategory = assets.reduce((acc, asset) => {
-    const category = asset.category || 'Unknown';
+    const category = modelIdToCategoryMap.get(asset.modelId) || 'Unknown';
     acc[category] = (acc[category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   const byState = assets.reduce((acc, asset) => {
-    const state = asset.state || 'Unknown';
+    const state = asset.state as string || 'Unknown';
     acc[state] = (acc[state] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);

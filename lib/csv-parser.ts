@@ -13,7 +13,27 @@ export interface ParsedEmployee extends Omit<Employee, "id"> {
   id?: string;
 }
 
-export type ParsedAsset = AssetCreate;
+// Redefine ParsedAsset to match the flat CSV structure, which differs from the nested/relational AssetCreate
+export interface ParsedAsset {
+  category: string;
+  make: string;
+  model: string;
+  serviceTag: string;
+  state: string;
+  location: string;
+  employee: string;
+  warrantyExpiry: string;
+  notes: string;
+  cpu: string;
+  ram: string;
+  storage: string;
+  dedicatedGpu: string;
+  usbAPorts: string;
+  usbCPorts: string;
+  dimensions: string;
+  resolution: string;
+  refreshHertz: string;
+}
 
 export async function parseEmployeesCsv(file: File): Promise<ParsedEmployee[]> {
   return new Promise((resolve, reject) => {
@@ -33,8 +53,6 @@ export async function parseEmployeesCsv(file: File): Promise<ParsedEmployee[]> {
           return;
         }
 
-        // naive CSV parsing assuming standard format (comma separated, no quoted commas yet)
-        // For a more robust solution, a library like papaparse is recommended, but we'll stick to simple split for now as per instructions (no new deps unless needed)
         const headers = lines[0].split(",").map((h) => h.trim());
         
         // Expected headers mapping
@@ -110,21 +128,21 @@ export async function parseInventoryCsv(file: File): Promise<ParsedAsset[]> {
               "make": "make",
               "brand": "make",
               "model": "model",
-              "service tag": "servicetag",
-              "servicetag": "servicetag",
-              "tag": "servicetag",
-              "serial number": "servicetag",
-              "sn": "servicetag",
+              "service tag": "serviceTag",
+              "servicetag": "serviceTag",
+              "tag": "serviceTag",
+              "serial number": "serviceTag",
+              "sn": "serviceTag",
               "employee": "employee",
               "assigned to": "employee",
               "user": "employee",
               "state": "state",
               "status": "state",
               "location": "location",
-              "warranty": "warrantyexpiry",
-              "warranty expiry": "warrantyexpiry",
-              "comments": "additionalcomments",
-              "notes": "additionalcomments",
+              "warranty": "warrantyExpiry",
+              "warranty expiry": "warrantyExpiry",
+              "comments": "notes",
+              "notes": "notes",
               "cpu": "cpu",
               "processor": "cpu",
               "ram": "ram",
@@ -143,34 +161,31 @@ export async function parseInventoryCsv(file: File): Promise<ParsedAsset[]> {
   
             const entry: Record<string, string> = {};
             mappedHeaders.forEach((header, index) => {
-               // Only map known fields
-               if (["category", "make", "model", "servicetag", "employee", "state", "location", "warrantyexpiry", "additionalcomments", "cpu", "ram", "storage"].includes(header)) {
-                   entry[header] = values[index];
-               }
+               // Map fields
+               entry[header] = values[index];
             });
             
-            // Basic validation: ensure required fields have at least default values or are present
-            if (entry.make || entry.model || entry.servicetag) {
-                // Apply defaults for missing required fields
+            // Basic validation
+            if (entry.make || entry.model || entry.serviceTag) {
                 const asset: ParsedAsset = {
                     category: entry.category || "Laptop",
                     make: entry.make || "Unknown",
                     model: entry.model || "Unknown",
-                    servicetag: entry.servicetag || `TAG-${Math.floor(Math.random() * 10000)}`,
+                    serviceTag: entry.serviceTag || `TAG-${Math.floor(Math.random() * 10000)}`,
                     state: entry.state || "GOOD",
                     location: entry.location || "Office",
                     employee: entry.employee || "",
-                    warrantyexpiry: entry.warrantyexpiry || "",
-                    additionalcomments: entry.additionalcomments || "",
+                    warrantyExpiry: entry.warrantyExpiry || "",
+                    notes: entry.notes || "",
                     cpu: entry.cpu || "",
                     ram: entry.ram || "",
                     storage: entry.storage || "",
-                    dedicatedgpu: entry.dedicatedgpu || "",
-                    "usb-aports": entry["usb-aports"] || "",
-                    "usb-cports": entry["usb-cports"] || "",
+                    dedicatedGpu: entry.dedicatedgpu || "", // CSV header mapping might return 'dedicatedgpu' (lowercase), verify below
+                    usbAPorts: entry["usb-aports"] || "",
+                    usbCPorts: entry["usb-cports"] || "",
                     dimensions: "",
                     resolution: "",
-                    refreshhertz: ""
+                    refreshHertz: ""
                 };
                 result.push(asset);
             }
@@ -263,22 +278,22 @@ export async function parseModelsCsv(file: File): Promise<ParsedModel[]> {
              }
           });
           
-          // Basic validation: ensure required fields have at least default values or are present
           if (entry.name || entry.make) {
-              // Apply defaults for missing required fields
               const model: ParsedModel = {
                   name: entry.name || "Unknown Model",
                   category: entry.category || "Laptop",
                   make: entry.make || "Unknown",
-                  cpu: entry.cpu || "",
-                  ram: entry.ram || "",
-                  storage: entry.storage || "",
-                  dedicatedgpu: entry.dedicatedgpu || "",
-                  "usb-aports": entry["usb-aports"] || "",
-                  "usb-cports": entry["usb-cports"] || "",
-                  dimensions: entry.dimensions || "",
-                  resolution: entry.resolution || "",
-                  refreshhertz: entry.refreshhertz || ""
+                  specs: {
+                    cpu: entry.cpu,
+                    ram: entry.ram,
+                    storage: entry.storage,
+                    dedicatedgpu: entry.dedicatedgpu,
+                    "usb-aports": entry["usb-aports"],
+                    "usb-cports": entry["usb-cports"],
+                    dimensions: entry.dimensions,
+                    resolution: entry.resolution,
+                    refreshhertz: entry.refreshhertz
+                  }
               };
               result.push(model);
           }

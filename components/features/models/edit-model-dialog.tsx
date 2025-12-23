@@ -1,6 +1,9 @@
 "use client";
 
 import { IconDeviceDesktop as IconHardware } from "@tabler/icons-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 import {
   Sheet,
@@ -25,13 +28,23 @@ export function EditModelSheet({
   onOpenChange,
 }: EditModelSheetProps) {
   const { update } = useModelMutation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!model) return null;
 
+  const FORM_ID = "edit-model-form";
+
   const handleSubmit = async (data: ModelCreate) => {
     if (model.id) {
-      await update(model.id, data);
-      onOpenChange(false);
+      setIsSubmitting(true);
+      try {
+        await update(model.id, data);
+        onOpenChange(false);
+      } catch (error) {
+        // Error handled by mutation hook
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -64,11 +77,29 @@ export function EditModelSheet({
           <div className="flex-1 overflow-y-auto">
             <div className="p-6 pb-10">
               <ModelForm
+                id={FORM_ID}
                 defaultValues={model}
                 onSubmit={handleSubmit}
-                submitLabel="Save Changes"
+                hideSubmitButton
               />
             </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t bg-muted/20 backdrop-blur-md flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save Changes
+            </Button>
           </div>
         </div>
       </SheetContent>

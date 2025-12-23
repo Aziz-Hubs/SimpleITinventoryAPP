@@ -11,7 +11,8 @@ export const employeeSchema = auditableEntitySchema.extend({
 });
 
 export type Employee = z.infer<typeof employeeSchema>;
-export type EmployeeCreate = z.infer<typeof employeeSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true })>;
+export const employeeCreateSchema = employeeSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true });
+export type EmployeeCreate = z.infer<typeof employeeCreateSchema>;
 export type EmployeeUpdate = Partial<EmployeeCreate>;
 
 export interface EmployeeFilters {

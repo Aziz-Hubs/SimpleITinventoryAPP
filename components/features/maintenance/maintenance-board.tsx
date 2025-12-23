@@ -24,7 +24,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MaintenanceRecord, MaintenanceStatus } from "@/lib/types";
+import { MaintenanceRecord, MaintenanceStatusEnum } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -40,24 +40,36 @@ interface MaintenanceBoardProps {
 }
 
 const COLUMNS: {
-  id: MaintenanceStatus | "backlog";
+  id: MaintenanceStatusEnum | "backlog";
   title: string;
   color: string;
 }[] = [
-  { id: "pending", title: "Pending Triage", color: "border-amber-500/50" },
-  { id: "scheduled", title: "Scheduled", color: "border-blue-500/50" },
-  { id: "in-progress", title: "In Progress", color: "border-indigo-500/50" },
   {
-    id: "completed",
+    id: MaintenanceStatusEnum.Pending,
+    title: "Pending Triage",
+    color: "border-amber-500/50",
+  },
+  {
+    id: MaintenanceStatusEnum.Scheduled,
+    title: "Scheduled",
+    color: "border-blue-500/50",
+  },
+  {
+    id: MaintenanceStatusEnum.InProgress,
+    title: "In Progress",
+    color: "border-indigo-500/50",
+  },
+  {
+    id: MaintenanceStatusEnum.Completed,
     title: "Recently Completed",
     color: "border-emerald-500/50",
   },
 ];
 
 // Helper to get actual status from column ID (since we map backlog->pending)
-const getStatusFromColumnId = (id: string): MaintenanceStatus => {
-  if (id === "backlog") return "pending";
-  return id as MaintenanceStatus;
+const getStatusFromColumnId = (id: string): MaintenanceStatusEnum => {
+  if (id === "backlog") return MaintenanceStatusEnum.Pending;
+  return id as MaintenanceStatusEnum;
 };
 
 // --- Column Component ---
@@ -150,7 +162,7 @@ export function MaintenanceBoard({
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [pendingUpdate, setPendingUpdate] = React.useState<{
     record: MaintenanceRecord;
-    newStatus: MaintenanceStatus;
+    newStatus: MaintenanceStatusEnum;
   } | null>(null);
 
   const sensors = useSensors(
@@ -182,7 +194,7 @@ export function MaintenanceBoard({
 
     // Determine target column status
     // 1. Dropped directly on a column
-    let targetStatus: MaintenanceStatus | null = null;
+    let targetStatus: MaintenanceStatusEnum | null = null;
     const overId = over.id.toString();
 
     const overColumn = COLUMNS.find((c) => c.id === overId);

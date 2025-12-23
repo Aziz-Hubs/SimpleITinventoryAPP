@@ -8,28 +8,37 @@ import { z } from "zod";
 import { auditableEntitySchema } from "./common";
 
 export enum AssetStateEnum {
-  New = 1,
-  Good = 2,
-  Fair = 3,
-  Broken = 4,
+  New = "NEW",
+  Good = "GOOD",
+  Fair = "FAIR",
+  Broken = "BROKEN",
+  Archived = "ARCHIVED", // Consistent with ASSET_STATES
 }
 
 export const assetSchema = auditableEntitySchema.extend({
   id: z.number(),
   serviceTag: z.string().min(1, "Service Tag is required"),
   modelId: z.number(),
+  make: z.string().optional(),
+  model: z.string().optional(),
   state: z.nativeEnum(AssetStateEnum),
   employeeId: z.string().uuid().nullable(),
+  employee: z.string().optional(),
   location: z.string().min(1, "Location is required"),
+  category: z.string().optional(),
   invoiceLineItemId: z.number().nullable(),
   warrantyExpiry: z.string().datetime().nullable(),
   isDeleted: z.boolean().default(false),
-  additionalcomments: z.string().nullable(),
+  notes: z.string().nullable(),
+  price: z.number().optional(),
 });
 
 export type Asset = z.infer<typeof assetSchema>;
-export type AssetCreate = z.infer<typeof assetSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true })>;
+export const assetCreateSchema = assetSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true });
+export type AssetCreate = z.infer<typeof assetCreateSchema>;
 export type AssetUpdate = Partial<AssetCreate>;
+
+export const ASSET_STATES = ["NEW", "GOOD", "FAIR", "BROKEN", "ARCHIVED"] as const;
 
 export const ASSET_CATEGORIES = [
   "Laptop",
@@ -56,8 +65,9 @@ export interface AssetFilters {
   page?: number;
   pageSize?: number;
   category?: string;
-  state?: number;
+  state?: AssetStateEnum;
   employeeId?: string;
+  employee?: string;
   location?: string;
   search?: string;
 }

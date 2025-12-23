@@ -14,9 +14,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Asset } from "@/lib/types";
+import { Asset, ASSET_STATES } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useModelById } from "@/hooks/api/use-models";
 
 interface QuickEditDialogProps {
   asset: Asset | null;
@@ -29,14 +30,11 @@ export function QuickEditDialog({
   open,
   onOpenChange,
 }: QuickEditDialogProps) {
-  const [make, setMake] = React.useState("");
-  const [model, setModel] = React.useState("");
   const [location, setLocation] = React.useState("");
+  const { data: modelData } = useModelById(asset?.modelId || 0);
 
   React.useEffect(() => {
     if (asset) {
-      setMake(asset.make);
-      setModel(asset.model);
       setLocation(asset.location);
     }
   }, [asset]);
@@ -45,7 +43,7 @@ export function QuickEditDialog({
 
   const handleConfirm = () => {
     toast.success(`Asset details updated`, {
-      description: `Updated details for ${asset.servicetag}`,
+      description: `Updated details for ${asset.serviceTag}`,
     });
     onOpenChange(false);
   };
@@ -66,7 +64,7 @@ export function QuickEditDialog({
               <SheetDescription>
                 Fast updates for{" "}
                 <span className="font-mono font-medium text-foreground">
-                  {asset.servicetag}
+                  {asset.serviceTag}
                 </span>
               </SheetDescription>
             </div>
@@ -95,9 +93,9 @@ export function QuickEditDialog({
                   </div>
                   <Input
                     id="make"
-                    value={make}
-                    onChange={(e) => setMake(e.target.value)}
-                    className="h-11 focus:ring-1"
+                    value={modelData?.make || ""}
+                    disabled
+                    className="h-11 focus:ring-1 bg-muted"
                   />
                 </div>
 
@@ -113,9 +111,9 @@ export function QuickEditDialog({
                   </div>
                   <Input
                     id="model"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    className="h-11 focus:ring-1"
+                    value={modelData?.name || ""}
+                    disabled
+                    className="h-11 focus:ring-1 bg-muted"
                   />
                 </div>
 
@@ -147,13 +145,27 @@ export function QuickEditDialog({
                     <span className="text-muted-foreground leading-none">
                       Category
                     </span>
-                    <span className="font-semibold">{asset.category}</span>
+                    <span className="font-semibold">
+                      {modelData?.category || "Unknown"}
+                    </span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-muted-foreground leading-none">
                       Status
                     </span>
-                    <span className="font-semibold">{asset.state}</span>
+                    <span className="font-semibold">
+                      {ASSET_STATES[Number(asset.state) - 1] || asset.state}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-muted-foreground leading-none">
+                      Price
+                    </span>
+                    <span className="font-semibold">
+                      {asset.price
+                        ? `$${asset.price.toLocaleString()}`
+                        : "Not Set"}
+                    </span>
                   </div>
                 </div>
               </div>

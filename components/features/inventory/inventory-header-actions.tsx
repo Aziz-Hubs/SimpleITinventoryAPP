@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Asset } from "@/lib/types";
+import { Asset, AssetCreate, AssetStateEnum } from "@/lib/types";
 import { toast } from "sonner";
 import { parseInventoryCsv, ParsedAsset } from "@/lib/csv-parser";
 import { ImportInventoryDialog } from "@/components/features/inventory/import-inventory-dialog";
@@ -87,7 +87,23 @@ export function InventoryHeaderActions({
     try {
       // Process sequentially
       for (const asset of importAssets) {
-        await createMutation.mutateAsync(asset);
+        const mappedAsset: AssetCreate = {
+          tenantId: "current",
+          serviceTag: asset.serviceTag,
+          modelId: 1, // Default ID
+          state: asset.state as AssetStateEnum,
+          employee: asset.employee,
+          employeeId: null,
+          location: asset.location,
+          notes: asset.notes,
+          category: asset.category,
+          make: asset.make,
+          model: asset.model,
+          invoiceLineItemId: null,
+          warrantyExpiry: asset.warrantyExpiry || null,
+          isDeleted: false,
+        };
+        await createMutation.mutateAsync(mappedAsset);
       }
       toast.success(`Successfully imported ${importAssets.length} items`);
       setIsImportOpen(false);

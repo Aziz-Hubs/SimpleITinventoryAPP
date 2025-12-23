@@ -81,6 +81,7 @@ import {
   ASSET_LOCATIONS,
   Asset,
   Model,
+  AssetStateEnum,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { updateAsset, deleteAsset } from "@/services/inventory-service";
@@ -93,10 +94,11 @@ const assetEditSchema = z.object({
   category: z.string().min(1, "Category is required"),
   state: z.string().min(1, "State is required"),
   modelId: z.number().min(1, "Model is required"),
-  servicetag: z.string().min(1, "Service tag is required"),
-  warrantyexpiry: z.string().optional(),
+  serviceTag: z.string().min(1, "Service tag is required"),
+  warrantyExpiry: z.string().optional(),
   location: z.string().min(1, "Location is required"),
-  additionalcomments: z.string().optional(),
+  price: z.string().optional(),
+  notes: z.string().optional(),
   employeeId: z.string().optional(),
 });
 
@@ -135,10 +137,11 @@ export function EditAssetSheet({
       category: "Laptop",
       state: "NEW",
       modelId: 0,
-      servicetag: "",
-      warrantyexpiry: "",
+      serviceTag: "",
+      warrantyExpiry: "",
       location: "Office",
-      additionalcomments: "",
+      price: "",
+      notes: "",
       employeeId: "UNASSIGNED",
     },
   });
@@ -149,21 +152,26 @@ export function EditAssetSheet({
 
   // Populate form when asset changes
   React.useEffect(() => {
-    if (asset && open) {
+    if (asset) {
+      const assetModel = models?.data.find((m) => m.id === asset.modelId);
+      const stateIndex = Number(asset.state) - 1;
+      const stateString = ASSET_STATES[stateIndex] || "NEW";
+
       const values: AssetEdit = {
-        category: asset.category || "Laptop",
-        state: asset.state || "NEW",
+        category: assetModel?.category || "Laptop",
+        state: stateString,
         modelId: asset.modelId || 0,
-        servicetag: asset.servicetag || "",
-        warrantyexpiry: asset.warrantyexpiry || "",
+        serviceTag: asset.serviceTag || "",
+        warrantyExpiry: asset.warrantyExpiry || "",
         location: asset.location || "Office",
-        additionalcomments: asset.additionalcomments || "",
+        price: asset.price ? String(asset.price) : "",
+        notes: asset.notes || "",
         employeeId: asset.employeeId || "UNASSIGNED",
       };
       form.reset(values);
       setOriginalValues(values);
     }
-  }, [asset, open, form]);
+  }, [asset, open, form, models]);
 
   const getChanges = () => {
     if (!originalValues) return [];
@@ -195,12 +203,21 @@ export function EditAssetSheet({
     setIsSubmitting(true);
     try {
       const data = form.getValues();
-      await updateAsset(asset.id, { ...asset, ...data });
+      const { category, state, ...rest } = data;
+      // Convert string state ("NEW", "GOOD" etc) back to Enum (1, 2 etc)
+      const stateEnum = state as AssetStateEnum;
+
+      const dataToSave = {
+        ...rest,
+        state: stateEnum,
+        price: data.price ? parseFloat(data.price) : undefined,
+      };
+      await updateAsset(asset.id, { ...asset, ...dataToSave });
       toast.success("Asset updated successfully");
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" },
         action: "updated",
-        target: data.servicetag,
+        target: data.serviceTag,
         comment: "Updated via Quick Adjust",
       });
       setShowSaveConfirm(false);
@@ -222,7 +239,7 @@ export function EditAssetSheet({
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" },
         action: "deleted",
-        target: asset.servicetag,
+        target: asset.serviceTag,
         comment: "Deleted via Quick Adjust",
       });
       setShowDeleteConfirm(false);
@@ -303,7 +320,7 @@ export function EditAssetSheet({
                       <SheetDescription className="text-muted-foreground">
                         Modify asset details for{" "}
                         <span className="font-mono font-semibold text-foreground">
-                          {asset.servicetag}
+                          {asset.serviceTag}
                         </span>
                       </SheetDescription>
                     </div>
@@ -438,8 +455,7 @@ export function EditAssetSheet({
                                     >
                                       {field.value
                                         ? availableModels.find(
-                                            (model) =>
-                                              model.id === field.value
+                                            (model) => model.id === field.value
                                           )?.name
                                         : "Select model..."}
                                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -497,7 +513,7 @@ export function EditAssetSheet({
 
                       <FormField
                         control={form.control}
-                        name="servicetag"
+                        name="serviceTag"
                         render={({ field }) => (
                           <FormItem className="col-span-full">
                             <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -526,12 +542,16 @@ export function EditAssetSheet({
                         </h3>
                       </div>
                       <div className="grid grid-cols-2 gap-6">
-                        {Object.entries(selectedModel.specs).map(([key, value]) => (
-                          <div key={key}>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{key}</p>
-                            <p>{String(value)}</p>
-                          </div>
-                        ))}
+                        {Object.entries(selectedModel.specs).map(
+                          ([key, value]) => (
+                            <div key={key}>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                {key}
+                              </p>
+                              <p>{String(value)}</p>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   )}
@@ -548,7 +568,7 @@ export function EditAssetSheet({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
-                        name="warrantyexpiry"
+                        name="warrantyExpiry"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -601,11 +621,33 @@ export function EditAssetSheet({
                           </FormItem>
                         )}
                       />
+
+                      <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                              Price (USD)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="e.g. 1200.00"
+                                className="h-10 bg-background/50"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <FormField
                       control={form.control}
-                      name="additionalcomments"
+                      name="notes"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

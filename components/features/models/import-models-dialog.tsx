@@ -122,13 +122,13 @@ export function ImportModelsDialog({
                           </span>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {model.cpu || "-"}
+                          {String(model.specs.cpu || "-")}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {model.ram || "-"}
+                          {String(model.specs.ram || "-")}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {model.storage || "-"}
+                          {String(model.specs.storage || "-")}
                         </TableCell>
                       </TableRow>
                     ))}

@@ -44,32 +44,6 @@ interface SectionCardsProps {
   /** Raw assets for populating the drill-down charts. */
   assets?: Asset[];
 }
-
-/** Animation variants for the stagger entrance effect. */
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-/** Individual card "pop-in" animation. */
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 260,
-      damping: 20,
-    },
-  },
-};
-
 /**
  * KPI Dashboard Header.
  * Renders a responsive grid of 4 cards: Total Assets, Deployment Rate,
@@ -128,18 +102,9 @@ export function SectionCards({
 
   return (
     <>
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 gap-4 *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4"
-      >
+      <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         {/* Total Assets Card */}
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -5 }}
-          transition={{ duration: 0.2 }}
-        >
+        <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
           <Card
             className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-indigo-500/5 border-indigo-500/20 hover:border-indigo-500/40"
             onClick={() => setSelectedCard("total")}
@@ -167,11 +132,7 @@ export function SectionCards({
         </motion.div>
 
         {/* Deployment Rate Card */}
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -5 }}
-          transition={{ duration: 0.2 }}
-        >
+        <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
           <Card
             className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40"
             onClick={() => setSelectedCard("deployment")}
@@ -198,11 +159,7 @@ export function SectionCards({
         </motion.div>
 
         {/* Ready for Issue Card */}
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -5 }}
-          transition={{ duration: 0.2 }}
-        >
+        <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
           <Card
             className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-sky-500/5 border-sky-500/20 hover:border-sky-500/40"
             onClick={() => setSelectedCard("stock")}
@@ -229,11 +186,7 @@ export function SectionCards({
         </motion.div>
 
         {/* Maintenance / Requires Attention Card */}
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -5 }}
-          transition={{ duration: 0.2 }}
-        >
+        <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
           <Card
             className="@container/card h-full cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-md bg-rose-500/5 border-rose-500/20 hover:border-rose-500/40"
             onClick={() => setSelectedCard("maintenance")}
@@ -258,7 +211,7 @@ export function SectionCards({
             </CardFooter>
           </Card>
         </motion.div>
-      </motion.div>
+      </div>
 
       {/* Detail Drill-down Modal */}
       <Dialog

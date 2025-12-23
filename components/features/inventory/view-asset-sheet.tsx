@@ -45,18 +45,18 @@ const renderSpecs = (model: Model) => {
     case "Desktop":
       return (
         <div className="grid grid-cols-2 gap-4">
-          <p>CPU: {model.specs.cpu}</p>
-          <p>RAM: {model.specs.ram}</p>
-          <p>Storage: {model.specs.storage}</p>
-          <p>GPU: {model.specs.dedicatedgpu}</p>
+          <p>CPU: {model.specs.cpu as string}</p>
+          <p>RAM: {model.specs.ram as string}</p>
+          <p>Storage: {model.specs.storage as string}</p>
+          <p>GPU: {model.specs.dedicatedgpu as string}</p>
         </div>
       );
     case "Monitor":
       return (
         <div className="grid grid-cols-2 gap-4">
-          <p>Dimensions: {model.specs.dimensions}</p>
-          <p>Resolution: {model.specs.resolution}</p>
-          <p>Refresh Rate: {model.specs.refreshhertz}</p>
+          <p>Dimensions: {model.specs.dimensions as string}</p>
+          <p>Resolution: {model.specs.resolution as string}</p>
+          <p>Refresh Rate: {model.specs.refreshhertz as string}</p>
         </div>
       );
     default:
@@ -71,10 +71,19 @@ export function ViewAssetSheet({
   sheetColor = "#3b82f6", // Default Blue
 }: ViewAssetDialogProps & { sheetColor?: string }) {
   const [isEmployeeSheetOpen, setIsEmployeeSheetOpen] = useState(false);
-  const { data: model } = useModelById(asset?.modelId || 0);
-  const { data: employee } = useEmployee(asset?.employeeId);
+  // Only fetch model if we have a valid modelId and need the specs
+  const { data: model } = useModelById(
+    asset?.modelId && asset.modelId > 0 ? asset.modelId : 0
+  );
+  const { data: employee } = useEmployee(asset?.employeeId ?? undefined);
 
-  if (!asset || !model) return null;
+  if (!asset) return null;
+
+  // Use asset's own fields instead of waiting for model data
+  // The asset already has make, model, and category populated
+  const displayMake = asset.make || model?.make || "Unknown";
+  const displayModel = asset.model || model?.name || "Device";
+  const displayCategory = asset.category || model?.category || "Unknown";
 
   return (
     <>
@@ -82,7 +91,7 @@ export function ViewAssetSheet({
         open={open}
         onOpenChange={onOpenChange}
         sheetColor={sheetColor}
-        title={`${model.make} ${model.name}`}
+        title={`${displayMake} ${displayModel}`}
         description="Full technical specifications and lifecycle activity for this device."
         icon={<Box className="h-6 w-6" />}
         headerContent={
@@ -91,10 +100,10 @@ export function ViewAssetSheet({
               variant="outline"
               className="bg-background text-[10px] font-bold uppercase tracking-wider h-5"
             >
-              {asset.category}
+              {displayCategory}
             </Badge>
             <span className="text-xs font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border">
-              {asset.servicetag}
+              {asset.serviceTag}
             </span>
           </div>
         }
@@ -149,8 +158,22 @@ export function ViewAssetSheet({
                 {asset.location}
               </span>
             </div>
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Asset Value
+              </p>
+              <span className="text-sm font-semibold flex items-center gap-2">
+                {asset.price ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                    ${asset.price.toLocaleString()}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground italic">Not Set</span>
+                )}
+              </span>
+            </div>
           </div>
-          {renderSpecs(model)}
+          {model && renderSpecs(model)}
         </div>
 
         {/* Current Ownership */}
@@ -202,22 +225,16 @@ export function ViewAssetSheet({
             )}
             <div className="flex flex-col gap-1">
               <span className="text-base font-bold tracking-tight">
-                {!employee
-                  ? "In Storage / Ready"
-                  : employee.fullName}
+                {!employee ? "In Storage / Ready" : employee.fullName}
               </span>
               <div className="flex items-center gap-2">
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    !employee
-                      ? "bg-muted-foreground/30"
-                      : "bg-emerald-500"
+                    !employee ? "bg-muted-foreground/30" : "bg-emerald-500"
                   }`}
                 />
                 <span className="text-xs font-medium text-muted-foreground italic">
-                  {!employee
-                    ? "Inventory Control"
-                    : "Click to view profile"}
+                  {!employee ? "Inventory Control" : "Click to view profile"}
                 </span>
               </div>
             </div>

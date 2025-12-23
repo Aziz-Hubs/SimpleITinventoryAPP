@@ -87,7 +87,7 @@ import { BulkDeleteDialog } from "@/components/features/inventory/bulk-delete-di
 import { CopyButton } from "@/components/shared/copy-button";
 import { BaseDataTable } from "@/components/shared/base-data-table";
 import { DataTableColumnHeader } from "@/components/shared/data-table-column-header";
-import { Asset } from "@/lib/types";
+import { Asset, AssetStateEnum } from "@/lib/types";
 import { useTableParams } from "@/hooks/use-table-params";
 
 // ----------------------------------------------------------------------
@@ -313,7 +313,9 @@ export function DataTable({
 
     // 1. Detect if we are viewing a Single Category or Mixed
     const uniqueCategories = Array.from(
-      new Set(initialData.map((item) => item.category.toLowerCase()))
+      new Set(
+        initialData.map((item) => item.category?.toLowerCase() || "unknown")
+      )
     );
     const isSingleCategory = uniqueCategories.length === 1;
     const currentCategory = isSingleCategory ? uniqueCategories[0] : null;
@@ -357,6 +359,11 @@ export function DataTable({
 
   /** Callback passed to individual rows to launch management dialogs. */
   const handleAction = React.useCallback((action: ActionType, asset: Asset) => {
+    console.log("[DataTable] handleAction called:", {
+      action,
+      asset,
+      assetId: asset.id,
+    });
     setSelectedAsset(asset);
     setActiveAction(action);
   }, []);
@@ -371,19 +378,21 @@ export function DataTable({
         return initialData.filter(
           (item) =>
             item.employee !== "UNASSIGNED" &&
-            item.state !== "BROKEN" &&
-            item.state !== "RETIRED"
+            item.state !== AssetStateEnum.Broken &&
+            item.state !== AssetStateEnum.Archived
         );
       case "draft":
         return initialData.filter(
           (item) =>
             item.employee === "UNASSIGNED" &&
-            item.state !== "BROKEN" &&
-            item.state !== "RETIRED"
+            item.state !== AssetStateEnum.Broken &&
+            item.state !== AssetStateEnum.Archived
         );
       case "archived":
         return initialData.filter(
-          (item) => item.state === "BROKEN" || item.state === "RETIRED"
+          (item) =>
+            item.state === AssetStateEnum.Broken ||
+            item.state === AssetStateEnum.Archived
         );
       default:
         return initialData;
@@ -429,9 +438,9 @@ export function DataTable({
           <DataTableColumnHeader column={column} title="Asset" />
         ),
         cell: ({ row }) => {
-          const make = row.original.make;
-          const model = row.original.model;
-          const category = row.original.category;
+          const make = row.original.make || "Unknown";
+          const model = row.original.model || "Unknown";
+          const category = row.original.category || "Unknown";
           return (
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground">
@@ -462,16 +471,23 @@ export function DataTable({
             {row.getValue("category")}
           </Badge>
         ),
+        filterFn: (row, id, value) => {
+          // Support multi-select: if value is array, check if row value is in array
+          if (Array.isArray(value)) {
+            return value.includes(row.getValue(id));
+          }
+          // Fallback to default string matching
+          return row.getValue(id) === value;
+        },
       },
 
-      // Service Tag Column
       {
-        accessorKey: "servicetag",
+        accessorKey: "serviceTag",
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title="Service Tag" />
         ),
         cell: ({ row }) => {
-          const tag = row.getValue("servicetag") as string;
+          const tag = row.getValue("serviceTag") as string;
           return (
             <div className="flex items-center gap-2 group">
               <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-foreground">
@@ -485,6 +501,12 @@ export function DataTable({
               </div>
             </div>
           );
+        },
+        filterFn: (row, id, value) => {
+          if (Array.isArray(value)) {
+            return value.includes(row.getValue(id));
+          }
+          return row.getValue(id) === value;
         },
       },
 
@@ -522,6 +544,12 @@ export function DataTable({
             </Badge>
           );
         },
+        filterFn: (row, id, value) => {
+          if (Array.isArray(value)) {
+            return value.includes(row.getValue(id));
+          }
+          return row.getValue(id) === value;
+        },
       },
 
       // Employee / Assignee Column
@@ -554,6 +582,12 @@ export function DataTable({
             </div>
           );
         },
+        filterFn: (row, id, value) => {
+          if (Array.isArray(value)) {
+            return value.includes(row.getValue(id));
+          }
+          return row.getValue(id) === value;
+        },
       },
 
       // Location Column
@@ -567,6 +601,28 @@ export function DataTable({
             {row.getValue("location")}
           </div>
         ),
+        filterFn: (row, id, value) => {
+          if (Array.isArray(value)) {
+            return value.includes(row.getValue(id));
+          }
+          return row.getValue(id) === value;
+        },
+      },
+
+      // Price Column
+      {
+        accessorKey: "price",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Price" />
+        ),
+        cell: ({ row }) => {
+          const price = row.getValue("price") as number | undefined;
+          return (
+            <div className="text-sm font-medium text-left">
+              {price ? `$${price.toLocaleString()}` : "-"}
+            </div>
+          );
+        },
       },
 
       // Technical Extensions (Shown dynamically)
@@ -662,7 +718,7 @@ export function DataTable({
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    getRowId: (row) => row.servicetag, // Use Service Tag as a stable unique ID
+    getRowId: (row) => row.serviceTag, // Use Service Tag as a stable unique ID
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -672,9 +728,6 @@ export function DataTable({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
-    // Sync pagination with URL params
-    manualPagination: true,
-    pageCount: Math.ceil(filteredData.length / params.pageSize),
     state: {
       sorting,
       columnFilters,
@@ -700,7 +753,7 @@ export function DataTable({
           table={table}
           data={filteredData}
           columns={columns}
-          searchKey="servicetag"
+          searchKey="serviceTag"
           renderToolbarLeft={() => (
             <div className="flex items-center gap-3">
               {externalToolbarLeft?.(table)}
@@ -726,6 +779,7 @@ export function DataTable({
           )}
           title={title}
           description={description}
+          onRowClick={(asset) => handleAction("view", asset)}
           renderCustomActions={(table) => (
             <div className="flex items-center gap-2">
               {externalCustomActions?.(table)}
@@ -774,7 +828,10 @@ export function DataTable({
       <ViewAssetSheet
         asset={selectedAsset}
         open={activeAction === "view"}
-        onOpenChange={(open) => !open && setActiveAction(null)}
+        onOpenChange={(open) => {
+          console.log("[DataTable] ViewAssetSheet onOpenChange:", open);
+          !open && setActiveAction(null);
+        }}
       />
       <AssignAssetDialog
         asset={selectedAsset}

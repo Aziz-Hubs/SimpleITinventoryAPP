@@ -12,7 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { ModelForm } from "./model-form";
 import { useModelMutation } from "@/hooks/api/use-models";
 import { ModelCreate } from "@/lib/types";
@@ -27,15 +27,25 @@ export function CreateModelSheet({
   onOpenChange,
 }: CreateModelSheetProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { create } = useModelMutation();
+
+  const FORM_ID = "create-model-form";
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleSubmit = async (data: ModelCreate) => {
-    await create(data);
-    setIsOpen(false);
+    setIsSubmitting(true);
+    try {
+      await create(data);
+      setIsOpen(false);
+    } catch (error) {
+      // Error handled by mutation hook
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Determine if we're in controlled mode
@@ -78,8 +88,29 @@ export function CreateModelSheet({
 
           <div className="flex-1 overflow-y-auto">
             <div className="p-6 pb-10">
-              <ModelForm onSubmit={handleSubmit} submitLabel="Create Model" />
+              <ModelForm
+                id={FORM_ID}
+                onSubmit={handleSubmit}
+                hideSubmitButton
+              />
             </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t bg-muted/20 backdrop-blur-md flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form={FORM_ID} disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Create Model
+            </Button>
           </div>
         </div>
       </SheetContent>

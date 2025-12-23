@@ -5,7 +5,7 @@
  * @path /services/dashboard-service.ts
  */
 
-import { Asset, DashboardStats, ChartDataPoint, Activity, ApiResponse, PaginatedResponse } from "@/lib/types";
+import { Asset, DashboardStats, ChartDataPoint, Activity, ApiResponse, PaginatedResponse, AssetStateEnum } from "@/lib/types";
 import { apiClient, isMockDataEnabled } from "@/lib/api-client";
 import inventoryData from "@/data/inv.json";
 
@@ -40,25 +40,26 @@ interface InventoryItem {
  */
 export const MOCK_ASSETS: Asset[] = (inventoryData as InventoryItem[]).map((item, index) => ({
   id: index + 1,
-  category: item.category || '',
-  state: item.state || '',
-  warrantyexpiry: item.warrantyexpiry || '',
+  tenantId: '00000000-0000-0000-0000-000000000000',
+  createdAt: new Date().toISOString(),
+  createdBy: 'Initial Import',
+  updatedAt: new Date().toISOString(),
+  updatedBy: 'Initial Import',
+  rowVersion: '1',
+  serviceTag: item.servicetag || `TAG-${index}`,
+  modelId: 1,
   make: item.make || '',
   model: item.model || '',
-  cpu: item.cpu || 'N/A',
-  ram: item.ram || 'N/A',
-  storage: item.storage || 'N/A',
-  dedicatedgpu: item.dedicatedgpu || 'N/A',
-  'usb-aports': item['usb-aports'] || 'N/A',
-  'usb-cports': item['usb-cports'] || 'N/A',
-  servicetag: item.servicetag || '',
+  category: item.category || '',
+  state: (item.state?.toUpperCase() as AssetStateEnum) || AssetStateEnum.Good,
   employee: item.employee || 'UNASSIGNED',
-  additionalcomments: item.additionalcomments || '',
-  location: item.location || '',
-  dimensions: item.dimensions || 'N/A',
-  resolution: item.resolution || 'N/A',
-  refreshhertz: item.refreshhertz || 'N/A',
-}));
+  employeeId: null,
+  location: item.location || 'Office',
+  warrantyExpiry: (item.warrantyexpiry && !isNaN(new Date(item.warrantyexpiry).getTime())) ? new Date(item.warrantyexpiry).toISOString() : null,
+  isDeleted: false,
+  notes: item.additionalcomments || null,
+  invoiceLineItemId: null,
+} as Asset));
 
 
 /** Sample time-series data for rendering the inventory growth chart. */

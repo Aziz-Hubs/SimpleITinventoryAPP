@@ -12,5 +12,6 @@ export const invoiceLineItemSchema = auditableEntitySchema.extend({
 });
 
 export type InvoiceLineItem = z.infer<typeof invoiceLineItemSchema>;
-export type InvoiceLineItemCreate = z.infer<typeof invoiceLineItemSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true })>;
+export const invoiceLineItemCreateSchema = invoiceLineItemSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true });
+export type InvoiceLineItemCreate = z.infer<typeof invoiceLineItemCreateSchema>;
 export type InvoiceLineItemUpdate = Partial<InvoiceLineItemCreate>;

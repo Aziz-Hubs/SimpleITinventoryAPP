@@ -58,7 +58,7 @@ import {
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { useModels } from "@/hooks/api/use-models";
-import { Model, Asset, Employee } from "@/lib/types";
+import { Model, Asset, Employee, AssetStateEnum } from "@/lib/types";
 
 // Service Imports
 import {
@@ -128,20 +128,20 @@ export function OffboardAssetDialog({ open, onOpenChange }: ActionProps) {
       }
 
       await updateAsset(asset.id, {
-        state: "Retired",
+        state: AssetStateEnum.Archived,
         employee: "UNASSIGNED",
-        additionalcomments:
-          asset.additionalcomments + `\nRetired: ${reason}. ${comment}`,
+        notes:
+          asset.notes + `\nRetired: ${reason}. ${comment}`,
       });
 
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" },
         action: "retired",
-        target: asset.servicetag,
+        target: asset.serviceTag,
         comment: `${reason} - ${comment}`,
       });
 
-      toast.success(`Asset ${asset.servicetag} successfully retired.`);
+      toast.success(`Asset ${asset.serviceTag} successfully retired.`);
 
       onOpenChange(false);
       setAssetTag("");
@@ -228,15 +228,15 @@ export function OffboardAssetDialog({ open, onOpenChange }: ActionProps) {
                               {assetSuggestions.map((asset) => (
                                 <CommandItem
                                   key={asset.id}
-                                  value={asset.servicetag}
+                                  value={asset.serviceTag}
                                   onSelect={() => {
-                                    setAssetTag(asset.servicetag);
+                                    setAssetTag(asset.serviceTag);
                                     setOpenTagCombobox(false);
                                   }}
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-bold">
-                                      {asset.servicetag}
+                                      {asset.serviceTag}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       {asset.model}
@@ -245,7 +245,7 @@ export function OffboardAssetDialog({ open, onOpenChange }: ActionProps) {
                                   <Check
                                     className={cn(
                                       "ml-auto h-4 w-4",
-                                      assetTag === asset.servicetag
+                                      assetTag === asset.serviceTag
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
@@ -403,12 +403,12 @@ export function AssignAssetDialog({ open, onOpenChange }: ActionProps) {
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" }, // Mock current user
         action: "assigned",
-        target: asset.servicetag,
+        target: asset.serviceTag,
         comment: comment,
       });
 
       toast.success(
-        `Asset ${asset.servicetag} assigned to ${employeeName} successfully.`
+        `Asset ${asset.serviceTag} assigned to ${employeeName} successfully.`
       );
 
       onOpenChange(false);
@@ -496,15 +496,15 @@ export function AssignAssetDialog({ open, onOpenChange }: ActionProps) {
                               {assetSuggestions.map((asset) => (
                                 <CommandItem
                                   key={asset.id}
-                                  value={asset.servicetag}
+                                  value={asset.serviceTag}
                                   onSelect={() => {
-                                    setAssetTag(asset.servicetag);
+                                    setAssetTag(asset.serviceTag);
                                     setOpenTagCombobox(false);
                                   }}
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-bold">
-                                      {asset.servicetag}
+                                      {asset.serviceTag}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       {asset.model}
@@ -513,7 +513,7 @@ export function AssignAssetDialog({ open, onOpenChange }: ActionProps) {
                                   <Check
                                     className={cn(
                                       "ml-auto h-4 w-4",
-                                      assetTag === asset.servicetag
+                                      assetTag === asset.serviceTag
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
@@ -677,11 +677,11 @@ export function UnassignAssetDialog({ open, onOpenChange }: ActionProps) {
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" },
         action: "unassigned",
-        target: asset.servicetag,
+        target: asset.serviceTag,
         comment: comment,
       });
 
-      toast.success(`Asset ${asset.servicetag} successfully returned.`);
+      toast.success(`Asset ${asset.serviceTag} successfully returned.`);
 
       onOpenChange(false);
       setAssetTag("");
@@ -767,15 +767,15 @@ export function UnassignAssetDialog({ open, onOpenChange }: ActionProps) {
                               {assetSuggestions.map((asset) => (
                                 <CommandItem
                                   key={asset.id}
-                                  value={asset.servicetag}
+                                  value={asset.serviceTag}
                                   onSelect={() => {
-                                    setAssetTag(asset.servicetag);
+                                    setAssetTag(asset.serviceTag);
                                     setOpenTagCombobox(false);
                                   }}
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-bold">
-                                      {asset.servicetag}
+                                      {asset.serviceTag}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       {asset.employee}
@@ -784,7 +784,7 @@ export function UnassignAssetDialog({ open, onOpenChange }: ActionProps) {
                                   <Check
                                     className={cn(
                                       "ml-auto h-4 w-4",
-                                      assetTag === asset.servicetag
+                                      assetTag === asset.serviceTag
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}
@@ -934,7 +934,7 @@ export function ReassignAssetDialog({ open, onOpenChange }: ActionProps) {
   }, [toUser]);
 
   const handleAssetSelect = (asset: Asset) => {
-    setAssetTag(asset.servicetag);
+    setAssetTag(asset.serviceTag);
     setFromUser(asset.employee || "Unassigned");
     setAssetSuggestions([]);
     setOpenTagCombobox(false);
@@ -955,7 +955,7 @@ export function ReassignAssetDialog({ open, onOpenChange }: ActionProps) {
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" },
         action: "reassigned",
-        target: asset.servicetag,
+        target: asset.serviceTag,
         comment: comment,
       });
 
@@ -1039,12 +1039,12 @@ export function ReassignAssetDialog({ open, onOpenChange }: ActionProps) {
                               {assetSuggestions.map((asset) => (
                                 <CommandItem
                                   key={asset.id}
-                                  value={asset.servicetag}
+                                  value={asset.serviceTag}
                                   onSelect={() => handleAssetSelect(asset)}
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-bold">
-                                      {asset.servicetag}
+                                      {asset.serviceTag}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                       {asset.model} - {asset.employee}
@@ -1053,7 +1053,7 @@ export function ReassignAssetDialog({ open, onOpenChange }: ActionProps) {
                                   <Check
                                     className={cn(
                                       "ml-auto h-4 w-4",
-                                      assetTag === asset.servicetag
+                                      assetTag === asset.serviceTag
                                         ? "opacity-100"
                                         : "opacity-0"
                                     )}

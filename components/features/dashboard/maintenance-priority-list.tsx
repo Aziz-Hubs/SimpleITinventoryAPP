@@ -1,4 +1,4 @@
-import { Asset } from "@/lib/types";
+import { Asset, AssetStateEnum } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertCircle, ArrowRight, MapPin, Tag } from "lucide-react";
@@ -14,7 +14,7 @@ export function MaintenancePriorityList({
   onViewDetails,
 }: MaintenancePriorityListProps) {
   const maintenanceItems = assets.filter((a) =>
-    ["BROKEN", "FAIR"].includes(a.state.toUpperCase())
+    [AssetStateEnum.Broken, AssetStateEnum.Fair].includes(a.state)
   );
 
   if (maintenanceItems.length === 0) {
@@ -48,7 +48,7 @@ export function MaintenancePriorityList({
             className="bg-red-500/5 text-red-600 border-red-200"
           >
             {
-              maintenanceItems.filter((i) => i.state.toUpperCase() === "BROKEN")
+              maintenanceItems.filter((i) => i.state === AssetStateEnum.Broken)
                 .length
             }{" "}
             Critical
@@ -58,7 +58,7 @@ export function MaintenancePriorityList({
             className="bg-yellow-500/5 text-yellow-600 border-yellow-200"
           >
             {
-              maintenanceItems.filter((i) => i.state.toUpperCase() === "FAIR")
+              maintenanceItems.filter((i) => i.state === AssetStateEnum.Fair)
                 .length
             }{" "}
             Warnings
@@ -71,12 +71,13 @@ export function MaintenancePriorityList({
           {maintenanceItems.map((item) => (
             <div
               key={item.id}
-              className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border bg-card hover:bg-muted/50 transition-all hover:shadow-sm"
+              className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border bg-card hover:bg-muted/50 transition-all hover:shadow-sm cursor-pointer"
+              onClick={() => onViewDetails(item)}
             >
               <div className="flex items-start gap-4">
                 <div
                   className={`mt-1 p-2 rounded-lg shrink-0 ${
-                    item.state.toUpperCase() === "BROKEN"
+                    item.state === AssetStateEnum.Broken
                       ? "bg-red-500/10 text-red-500"
                       : "bg-yellow-500/10 text-yellow-600"
                   }`}
@@ -92,7 +93,7 @@ export function MaintenancePriorityList({
                     <Badge
                       variant="outline"
                       className={`uppercase text-[10px] font-bold tracking-wider ${
-                        item.state.toUpperCase() === "BROKEN"
+                        item.state === AssetStateEnum.Broken
                           ? "border-red-200 text-red-700 bg-red-50"
                           : "border-yellow-200 text-yellow-700 bg-yellow-50"
                       }`}
@@ -105,7 +106,7 @@ export function MaintenancePriorityList({
                     <div className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded-md">
                       <Tag className="h-3 w-3" />
                       <span className="font-mono font-medium">
-                        {item.servicetag}
+                        {item.serviceTag}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

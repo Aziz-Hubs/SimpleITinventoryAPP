@@ -96,11 +96,11 @@ export function AssignAssetDialog({
       await logActivity({
         user: { name: "Current User", avatar: "", initials: "ME" },
         action: "assigned",
-        target: asset.servicetag,
+        target: asset.serviceTag,
         comment: `Assigned to ${value}. ${comment}`,
       });
 
-      toast.success(`Asset ${asset.servicetag} assigned to ${value}`, {
+      toast.success(`Asset ${asset.serviceTag} assigned to ${value}`, {
         description: comment ? `Note: ${comment}` : undefined,
       });
 
@@ -131,7 +131,7 @@ export function AssignAssetDialog({
               <SheetDescription>
                 Transfer ownership of asset{" "}
                 <span className="font-mono font-medium text-foreground">
-                  {asset.servicetag}
+                  {asset.serviceTag}
                 </span>
               </SheetDescription>
             </div>
@@ -152,16 +152,23 @@ export function AssignAssetDialog({
                 <div className="p-3 rounded-lg bg-background border shadow-sm">
                   <Monitor className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h4 className="font-semibold text-sm">
                     {asset.make} {asset.model}
                   </h4>
-                  <Badge
-                    variant="outline"
-                    className="mt-1 text-[10px] uppercase font-bold tracking-tight"
-                  >
-                    {asset.category}
-                  </Badge>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] uppercase font-bold tracking-tight"
+                    >
+                      {asset.category}
+                    </Badge>
+                    {asset.price && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                        ${asset.price.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

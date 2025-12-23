@@ -36,6 +36,18 @@ import { useModels } from "@/hooks/api/use-models";
 import { useTableParams } from "@/hooks/use-table-params";
 import { ModelsHeaderActions } from "./models-header-actions";
 import { CategoryFilter } from "@/components/features/inventory/category-filter";
+import { EditModelSheet } from "./edit-model-dialog";
+import { useModelMutation } from "@/hooks/api/use-models";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ModelsTableProps {
   title?: React.ReactNode;
@@ -87,6 +99,29 @@ export function ModelsTable({ title, description }: ModelsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
+
+  const [selectedModel, setSelectedModel] = React.useState<Model | null>(null);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+
+  const { remove } = useModelMutation();
+
+  const handleEdit = React.useCallback((model: Model) => {
+    setSelectedModel(model);
+    setIsEditOpen(true);
+  }, []);
+
+  const handleDelete = React.useCallback((model: Model) => {
+    setSelectedModel(model);
+    setIsDeleteOpen(true);
+  }, []);
+
+  const confirmDelete = async () => {
+    if (selectedModel?.id) {
+      await remove(selectedModel.id);
+      setIsDeleteOpen(false);
+    }
+  };
 
   const columns = React.useMemo<ColumnDef<Model>[]>(
     () => [
@@ -162,10 +197,16 @@ export function ModelsTable({ title, description }: ModelsTableProps) {
       },
       {
         id: "actions",
-        cell: ({ row }) => <ModelActions model={row.original} />,
+        cell: ({ row }) => (
+          <ModelActions
+            model={row.original}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ),
       },
     ],
-    []
+    [handleEdit, handleDelete]
   );
 
   const table = useReactTable({
@@ -188,23 +229,57 @@ export function ModelsTable({ title, description }: ModelsTableProps) {
     manualPagination: true,
     pageCount: response?.pagination?.totalPages || -1,
   });
-
   return (
-    <BaseDataTable
-      table={table}
-      data={models}
-      columns={columns}
-      searchKey="name"
-      searchPlaceholder="Search models..."
-      title={title}
-      description={description}
-      renderToolbarLeft={() => (
-        <CategoryFilter
-          selectedCategory={params.category}
-          onCategoryChange={(cat) => setParams({ category: cat, page: 1 })}
-        />
-      )}
-      renderCustomActions={() => <ModelsHeaderActions models={models} />}
-    />
+    <>
+      <BaseDataTable
+        table={table}
+        data={models}
+        columns={columns}
+        searchKey="name"
+        searchPlaceholder="Search models..."
+        title={title}
+        description={description}
+        renderToolbarLeft={() => (
+          <CategoryFilter
+            selectedCategory={params.category}
+            onCategoryChange={(cat) => setParams({ category: cat, page: 1 })}
+          />
+        )}
+        renderCustomActions={() => <ModelsHeaderActions models={models} />}
+        onRowClick={handleEdit}
+      />
+
+      <EditModelSheet
+        model={selectedModel}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              model &quot;{selectedModel?.name}&quot;.
+              <br />
+              <span className="text-red-500 font-medium text-xs mt-2 block">
+                Warning: This may affect assets currently assigned to this
+                model.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

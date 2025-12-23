@@ -38,7 +38,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Asset } from "@/lib/types";
+import { Asset, ASSET_STATES } from "@/lib/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -78,7 +78,10 @@ export function UpdateStateDialog({
   // Sync internal state with the passed asset prop whenever it changes
   React.useEffect(() => {
     if (asset) {
-      setState(asset.state);
+      // Map Enum (number) to String for Select component
+      const stateIndex = Number(asset.state) - 1;
+      const stateString = ASSET_STATES[stateIndex] || "NEW";
+      setState(stateString);
     }
   }, [asset]);
 
@@ -91,7 +94,8 @@ export function UpdateStateDialog({
    */
   const handleConfirm = () => {
     // Basic validation: user should ideally provide a reason for state changes
-    if (!reason && state !== asset.state) {
+    const currentStateString = ASSET_STATES[Number(asset.state) - 1];
+    if (!reason && state !== currentStateString) {
       toast.error("Please provide a reason for the status change");
       return;
     }
@@ -124,7 +128,7 @@ export function UpdateStateDialog({
               <SheetDescription>
                 Change the state of asset{" "}
                 <span className="font-mono font-medium text-foreground">
-                  {asset.servicetag}
+                  {asset.serviceTag}
                 </span>
               </SheetDescription>
             </div>
@@ -147,7 +151,9 @@ export function UpdateStateDialog({
                     Current Status
                   </Label>
                   <div className="rounded-lg border p-3 bg-muted/30 text-sm font-semibold flex items-center justify-between">
-                    <span>{asset.state}</span>
+                    <span>
+                      {ASSET_STATES[Number(asset.state) - 1] || asset.state}
+                    </span>
                     <Badge variant="outline" className="bg-background">
                       Current
                     </Badge>
@@ -211,6 +217,39 @@ export function UpdateStateDialog({
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {/* Asset Information Card */}
+                <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Asset Information
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground leading-none">
+                        Category
+                      </span>
+                      <span className="font-semibold">
+                        {asset.category || "Unknown"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground leading-none">
+                        Location
+                      </span>
+                      <span className="font-semibold">{asset.location}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground leading-none">
+                        Price
+                      </span>
+                      <span className="font-semibold">
+                        {asset.price
+                          ? `$${asset.price.toLocaleString()}`
+                          : "Not Set"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Reason Input */}
                 <div className="space-y-3">

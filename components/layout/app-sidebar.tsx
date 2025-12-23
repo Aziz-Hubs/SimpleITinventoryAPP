@@ -21,6 +21,7 @@ import {
   IconPencil,
   IconTool,
   IconCpu,
+  IconReceipt,
 } from "@tabler/icons-react";
 
 import { NavMain } from "./nav-main";
@@ -79,6 +80,11 @@ const data = {
       title: "Maintenance",
       url: "/maintenance",
       icon: IconTool,
+    },
+    {
+      title: "Invoices",
+      url: "/invoices",
+      icon: IconReceipt,
     },
   ],
   navSecondary: [

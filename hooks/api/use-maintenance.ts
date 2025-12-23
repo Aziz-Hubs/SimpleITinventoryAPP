@@ -15,7 +15,7 @@ import {
   addMaintenanceComment, 
   updateMaintenanceRecord 
 } from '@/services/maintenance-service';
-import { MaintenanceRecord, MaintenanceStatus, MaintenanceCreate, MaintenanceUpdate, MaintenanceFilters } from '@/lib/types';
+import { MaintenanceRecord, MaintenanceStatusEnum, MaintenanceCreate, MaintenanceUpdate, MaintenanceFilters } from '@/lib/types';
 import { toast } from 'sonner';
 
 /**
@@ -81,7 +81,7 @@ export function useUpdateMaintenanceStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status, note }: { id: string; status: MaintenanceStatus; note?: string }) => 
+    mutationFn: ({ id, status, note }: { id: string; status: MaintenanceStatusEnum; note?: string }) => 
       updateMaintenanceStatus(id, status, note),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: MAINTENANCE_KEYS.lists() });

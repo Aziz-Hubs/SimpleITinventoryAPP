@@ -155,6 +155,8 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
       email: formData.get("email") as string,
       department: formData.get("department") as string,
       position: formData.get("position") as string,
+      tenantId: "current",
+      isActive: true,
     };
 
     createMutation.mutate(newEmployeeData, {
@@ -234,6 +236,8 @@ export function EmployeesTable({ title, description }: EmployeesTableProps) {
           email: employee.email,
           department: employee.department || "Unassigned", // Default fallback
           position: employee.position || "Staff", // Default fallback
+          tenantId: "current",
+          isActive: true,
         });
       }
       toast.success(

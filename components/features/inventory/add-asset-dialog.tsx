@@ -74,7 +74,33 @@ import {
   ASSET_LOCATIONS,
   assetCreateSchema,
   AssetCreate,
+  AssetStateEnum,
 } from "@/lib/types";
+import { z } from "zod";
+
+const formSchema = z.object({
+  category: z.string(),
+  state: z.string(),
+  make: z.string(),
+  model: z.string().min(1, "Model is required"),
+  serviceTag: z.string().min(1, "Service Tag is required"),
+  warrantyExpiry: z.string().optional(),
+  location: z.string(),
+  price: z.string().optional(),
+  cpu: z.string().optional(),
+  ram: z.string().optional(),
+  storage: z.string().optional(),
+  dedicatedgpu: z.string().optional(),
+  "usb-aports": z.string().optional(),
+  "usb-cports": z.string().optional(),
+  dimensions: z.string().optional(),
+  resolution: z.string().optional(),
+  refreshhertz: z.string().optional(),
+  notes: z.string().optional(),
+  employee: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 import { cn } from "@/lib/utils";
 import { useCreateAsset } from "@/hooks/api/use-assets";
 import modelsData from "@/data/models.json";
@@ -129,16 +155,17 @@ export function AddAssetDialog({
 }: AddAssetDialogProps) {
   const createAsset = useCreateAsset();
 
-  const form = useForm<AssetCreate>({
-    resolver: zodResolver(assetCreateSchema),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       category: "Laptop",
       state: "NEW",
       make: "",
       model: "",
-      servicetag: "",
-      warrantyexpiry: "",
+      serviceTag: "",
+      warrantyExpiry: "",
       location: "Office",
+      price: "",
       cpu: "",
       ram: "",
       storage: "",
@@ -148,21 +175,40 @@ export function AddAssetDialog({
       dimensions: "",
       resolution: "",
       refreshhertz: "",
-      additionalcomments: "",
+      notes: "",
       employee: "UNASSIGNED",
     },
   });
 
   const category = form.watch("category");
 
-  const onSubmit = async (data: AssetCreate) => {
+  const onSubmit = async (data: FormValues) => {
     try {
-      await createAsset.mutateAsync(data);
+      // Map form string state to Enum
+      const stateEnum = data.state as AssetStateEnum;
+
+      const assetData: AssetCreate = {
+        serviceTag: data.serviceTag,
+        modelId: 1, // TODO: Lookup actual model ID. Hardcoded for now.
+        state: stateEnum,
+        location: data.location,
+        notes: data.notes || null,
+        employeeId:
+          data.employee === "UNASSIGNED" ? null : data.employee || null,
+        invoiceLineItemId: null,
+        warrantyExpiry: data.warrantyExpiry || null,
+        price: data.price ? parseFloat(data.price) : undefined,
+        tenantId: "default", // Should be handled by backend or context
+        isDeleted: false,
+      };
+
+      await createAsset.mutateAsync(assetData);
       form.reset();
       onOpenChange(false);
       onCreated?.();
     } catch (error) {
       // Toast handled by mutation hook
+      console.error("Failed to create asset", error);
     }
   };
 
@@ -189,7 +235,7 @@ export function AddAssetDialog({
   const [openTagCombobox, setOpenTagCombobox] = React.useState(false);
 
   // Watch service tag for auto-lookup
-  const serviceTag = form.watch("servicetag");
+  const serviceTag = form.watch("serviceTag");
 
   // Memoized available models based on category
   const availableModels = React.useMemo(() => {
@@ -491,7 +537,7 @@ export function AddAssetDialog({
 
                     <FormField
                       control={form.control}
-                      name="servicetag"
+                      name="serviceTag"
                       render={({ field }) => (
                         <FormItem className="col-span-full flex flex-col">
                           <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -804,7 +850,7 @@ export function AddAssetDialog({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="warrantyexpiry"
+                      name="warrantyExpiry"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -857,11 +903,33 @@ export function AddAssetDialog({
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Price (USD)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="e.g. 1200.00"
+                              className="h-10 bg-background/50"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <FormField
                     control={form.control}
-                    name="additionalcomments"
+                    name="notes"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

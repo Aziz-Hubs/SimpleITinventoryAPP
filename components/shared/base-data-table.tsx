@@ -138,9 +138,6 @@ export function BaseDataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    // Sync pagination with URL params
-    manualPagination: true,
-    pageCount: Math.ceil(data.length / params.pageSize),
     state: {
       sorting,
       columnFilters,
@@ -162,8 +159,27 @@ export function BaseDataTable<TData, TValue>({
    * Updates global URL state for searching.
    * Triggers a jump back to page 1 to prevent empty results on high page indices.
    */
+  // Local search state for responsive UI
+  const [searchValue, setSearchValue] = React.useState(params.search || "");
+
+  /** Sync local search with URL search (e.g. when filters are cleared) */
+  React.useEffect(() => {
+    setSearchValue(params.search || "");
+  }, [params.search]);
+
+  /** Debounced search update to URL */
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchValue !== (params.search || "")) {
+        setParams({ search: searchValue, page: 1 });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchValue, params.search, setParams]);
+
   const handleSearchChange = (value: string) => {
-    setParams({ search: value, page: 1 });
+    setSearchValue(value);
   };
 
   return (
@@ -195,7 +211,7 @@ export function BaseDataTable<TData, TValue>({
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/70 group-focus-within:text-primary transition-colors" />
                 <Input
                   placeholder={searchPlaceholder}
-                  value={params.search}
+                  value={searchValue}
                   onChange={(event) => handleSearchChange(event.target.value)}
                   className="h-10 w-full pl-10 bg-background border-input hover:border-primary/30 focus-visible:ring-1 focus-visible:ring-primary/40 transition-all shadow-xs"
                 />

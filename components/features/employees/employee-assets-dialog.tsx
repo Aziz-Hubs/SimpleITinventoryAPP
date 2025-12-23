@@ -31,6 +31,7 @@ import {
   History,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ViewAssetSheet } from "@/components/features/inventory/view-asset-sheet";
 
 interface EmployeeAssetsDialogProps {
   employeeName: string | null;
@@ -81,6 +82,8 @@ export function EmployeeAssetsDialog({
 }: EmployeeAssetsDialogProps) {
   const [assets, setAssets] = React.useState<Asset[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [selectedAsset, setSelectedAsset] = React.useState<Asset | null>(null);
+  const [isAssetSheetOpen, setIsAssetSheetOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (open && employeeName) {
@@ -147,12 +150,16 @@ export function EmployeeAssetsDialog({
                     {assets.map((asset) => (
                       <TableRow
                         key={asset.id}
-                        className="group hover:bg-muted/30 transition-colors border-b"
+                        className="group hover:bg-muted/30 transition-colors border-b cursor-pointer"
+                        onClick={() => {
+                          setSelectedAsset(asset);
+                          setIsAssetSheetOpen(true);
+                        }}
                       >
                         <TableCell className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/5 rounded-lg group-hover:bg-primary/10 transition-colors border">
-                              {getAssetIcon(asset.category)}
+                              {getAssetIcon(asset.category || "")}
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <span className="font-semibold text-sm">
@@ -170,7 +177,7 @@ export function EmployeeAssetsDialog({
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-4 font-mono text-[10px] font-semibold text-muted-foreground">
-                          {asset.servicetag}
+                          {asset.serviceTag}
                         </TableCell>
                         <TableCell className="px-6 py-4 text-right">
                           <Badge
@@ -211,6 +218,12 @@ export function EmployeeAssetsDialog({
           </div>
         </div>
       </SheetContent>
+
+      <ViewAssetSheet
+        asset={selectedAsset}
+        open={isAssetSheetOpen}
+        onOpenChange={setIsAssetSheetOpen}
+      />
     </Sheet>
   );
 }

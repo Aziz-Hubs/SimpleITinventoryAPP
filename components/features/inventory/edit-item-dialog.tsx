@@ -201,7 +201,7 @@ export function EditItemDialog({ open, onOpenChange }: EditItemDialogProps) {
                               {asset.make} {asset.model}
                             </span>
                             <span className="text-xs text-muted-foreground font-mono">
-                              {asset.servicetag}
+                              {asset.serviceTag}
                             </span>
                           </div>
                           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-0.5 rounded-full bg-muted border">

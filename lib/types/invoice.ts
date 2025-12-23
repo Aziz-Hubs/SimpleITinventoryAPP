@@ -9,5 +9,6 @@ export const invoiceSchema = auditableEntitySchema.extend({
 });
 
 export type Invoice = z.infer<typeof invoiceSchema>;
-export type InvoiceCreate = z.infer<typeof invoiceSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true })>;
+export const invoiceCreateSchema = invoiceSchema.omit({ id: true, rowVersion: true, createdAt: true, updatedAt: true, createdBy: true, updatedBy: true, tenantId: true });
+export type InvoiceCreate = z.infer<typeof invoiceCreateSchema>;
 export type InvoiceUpdate = Partial<InvoiceCreate>;

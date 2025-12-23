@@ -42,7 +42,7 @@ interface MaintenanceToolbarProps {
 export function MaintenanceToolbar({
   viewMode,
   onViewChange,
-  search,
+  search: externalSearch,
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
@@ -50,6 +50,25 @@ export function MaintenanceToolbar({
   onCreate,
   loading,
 }: MaintenanceToolbarProps) {
+  // Local search state for responsive UI
+  const [localSearch, setLocalSearch] = React.useState(externalSearch || "");
+
+  /** Sync local search with external search (e.g. when filters are cleared) */
+  React.useEffect(() => {
+    setLocalSearch(externalSearch || "");
+  }, [externalSearch]);
+
+  /** Debounced search update to parent */
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== (externalSearch || "")) {
+        onSearchChange(localSearch);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [localSearch, externalSearch, onSearchChange]);
+
   return (
     <div className="flex flex-col gap-4 p-1">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -76,8 +95,8 @@ export function MaintenanceToolbar({
             <IconSearch className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search assets, issues..."
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
               className="pl-9 h-10 bg-background/50"
             />
           </div>

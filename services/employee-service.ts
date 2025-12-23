@@ -7,7 +7,7 @@
 
 import employeesJson from '@/data/employees.json';
 import { isMockDataEnabled, apiClient } from '@/lib/api-client';
-import { Employee, PaginatedResponse, EmployeeFilters } from '@/lib/types';
+import { Employee, PaginatedResponse, EmployeeFilters, EmployeeCreate, EmployeeUpdate } from '@/lib/types';
 import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
 import { paginateData } from '@/lib/utils';
 
@@ -108,12 +108,17 @@ export async function getEmployeeByName(name: string): Promise<Employee | null> 
  * @sideeffect Appends to mock storage if enabled.
  * @returns {Promise<Employee>} The created object with its new ID.
  */
-export async function createEmployee(employee: Omit<Employee, 'id'>): Promise<Employee> {
+export async function createEmployee(employee: EmployeeCreate): Promise<Employee> {
     if (isMockDataEnabled()) {
         const employees = getMockEmployees();
         const newEmployee: Employee = {
             ...employee,
             id: `EMP-${(employees.length + 1).toString().padStart(3, '0')}`,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            createdBy: 'Admin',
+            updatedBy: 'Admin',
+            rowVersion: '1'
         };
         MockStorage.add(STORAGE_KEYS.EMPLOYEES, newEmployee);
         return Promise.resolve(newEmployee);
@@ -130,7 +135,7 @@ export async function createEmployee(employee: Omit<Employee, 'id'>): Promise<Em
  * @throws {Error} If the ID does not exist in mock storage.
  * @returns {Promise<Employee>}
  */
-export async function updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee> {
+export async function updateEmployee(id: string, updates: EmployeeUpdate): Promise<Employee> {
     if (isMockDataEnabled()) {
         const updated = MockStorage.update<Employee>(STORAGE_KEYS.EMPLOYEES, id, updates);
         if (!updated) {

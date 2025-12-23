@@ -5,13 +5,15 @@
  * @path /services/maintenance-service.ts
  */
 
-import { 
-  MaintenanceRecord, 
-  MaintenanceTimelineEvent, 
-  MaintenanceComment, 
-  MaintenanceStatus, 
-  MaintenanceFilters, 
-  PaginatedResponse 
+import {
+  MaintenanceRecord,
+  MaintenanceTimelineEvent,
+  MaintenanceComment,
+  MaintenanceStatus,
+  MaintenanceFilters,
+  PaginatedResponse,
+  MaintenanceCreate,
+  MaintenanceUpdate
 } from "@/lib/types";
 import initialMaintenanceData from "@/data/maintenance.json";
 import { MockStorage, STORAGE_KEYS } from "@/lib/mock-storage";
@@ -32,7 +34,7 @@ const CURRENT_USER = "Admin User";
  * @returns {MaintenanceRecord[]} The current set of maintenance records.
  */
 function getMockMaintenance(): MaintenanceRecord[] {
-  return MockStorage.initialize(STORAGE_KEYS.MAINTENANCE, initialMaintenanceData as MaintenanceRecord[]);
+  return MockStorage.initialize(STORAGE_KEYS.MAINTENANCE, initialMaintenanceData as unknown as MaintenanceRecord[]);
 }
 
 /** 
@@ -63,7 +65,7 @@ export async function getMaintenanceRecords(filters: MaintenanceFilters = {}): P
       );
     }
 
-    if (filters.status && filters.status !== 'all') {
+    if (filters.status && (filters.status as string) !== 'all') {
       filtered = filtered.filter(r => r.status === filters.status);
     }
 
@@ -99,7 +101,7 @@ export async function getMaintenanceRecordById(id: string): Promise<MaintenanceR
  * @returns {Promise<MaintenanceRecord>} The initialized record.
  */
 export async function createMaintenanceRequest(
-  data: Omit<MaintenanceRecord, "id" | "reportedDate" | "timeline" | "comments"> & { notes?: string[] }
+  data: MaintenanceCreate
 ): Promise<MaintenanceRecord> {
   if (isMockDataEnabled()) {
     await delay(500);
@@ -123,7 +125,12 @@ export async function createMaintenanceRequest(
           timestamp: now,
           user: CURRENT_USER 
         }
-      ]
+      ],
+      createdAt: now,
+      updatedAt: now,
+      createdBy: CURRENT_USER,
+      updatedBy: CURRENT_USER,
+      rowVersion: "1"
     };
 
     MockStorage.add(STORAGE_KEYS.MAINTENANCE, newRecord);
@@ -161,7 +168,7 @@ export async function updateMaintenanceStatus(
     record.status = status;
     
     if (note) {
-      record.notes = [...record.notes, `${now.split("T")[0]}: ${note}`];
+      record.notes = [...(record.notes || []), `${now.split("T")[0]}: ${note}`];
     }
 
     if (status === "completed" && !record.completedDate) {
@@ -176,7 +183,7 @@ export async function updateMaintenanceStatus(
       timestamp: now,
       user: CURRENT_USER
     };
-    record.timeline = [newEvent, ...record.timeline];
+    record.timeline = [newEvent, ...(record.timeline || [])];
 
     return MockStorage.update<MaintenanceRecord>(STORAGE_KEYS.MAINTENANCE, id, record);
   }
@@ -214,7 +221,7 @@ export async function addMaintenanceComment(
       isInternal
     };
 
-    record.comments = [newComment, ...record.comments];
+    record.comments = [newComment, ...(record.comments || [])];
     
     const newTimelineEvent: MaintenanceTimelineEvent = {
       id: crypto.randomUUID(),
@@ -224,7 +231,7 @@ export async function addMaintenanceComment(
       timestamp: now,
       user: CURRENT_USER
     };
-    record.timeline = [newTimelineEvent, ...record.timeline];
+    record.timeline = [newTimelineEvent, ...(record.timeline || [])];
 
     MockStorage.update<MaintenanceRecord>(STORAGE_KEYS.MAINTENANCE, id, record);
     return newComment;
@@ -243,7 +250,7 @@ export async function addMaintenanceComment(
  */
 export async function updateMaintenanceRecord(
   id: string,
-  updates: Partial<MaintenanceRecord>
+  updates: MaintenanceUpdate
 ): Promise<MaintenanceRecord | null> {
   if (isMockDataEnabled()) {
     await delay(300);
@@ -263,7 +270,7 @@ export async function updateMaintenanceRecord(
         timestamp: new Date().toISOString(),
         user: CURRENT_USER
       };
-      updatedRecord.timeline = [newEvent, ...updatedRecord.timeline];
+      updatedRecord.timeline = [newEvent, ...(record.timeline || [])];
     }
 
     return MockStorage.update<MaintenanceRecord>(STORAGE_KEYS.MAINTENANCE, id, updatedRecord);

@@ -6,7 +6,7 @@
  */
 
 import { isMockDataEnabled, apiClient } from '@/lib/api-client';
-import { Model, ModelFilters, PaginatedResponse } from '@/lib/types';
+import { Model, ModelFilters, PaginatedResponse, ModelCreate, ModelUpdate } from '@/lib/types';
 import modelsData from '@/data/models.json';
 import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
 import { paginateData } from '@/lib/utils';
@@ -36,6 +36,12 @@ function convertModelData(): Model[] {
     category: item.category,
     make: item.make,
     specs: item.specs,
+    tenantId: '00000000-0000-0000-0000-000000000000',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    createdBy: 'Initial Data',
+    updatedBy: 'Initial Data',
+    rowVersion: '1',
   } as Model));
 }
 
@@ -97,13 +103,19 @@ export async function getModelById(id: number): Promise<Model> {
 /**
  * Creates a new model.
  */
-export async function createModel(model: Omit<Model, 'id'>): Promise<Model> {
+export async function createModel(model: ModelCreate): Promise<Model> {
   if (isMockDataEnabled()) {
     const models = getMockModels();
     const newModel: Model = {
       ...model,
       id: models.length > 0 ? Math.max(...models.map(m => m.id || 0)) + 1 : 1,
-    };
+      tenantId: '00000000-0000-0000-0000-000000000000',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'Admin User',
+      updatedBy: 'Admin User',
+      rowVersion: '1',
+    } as Model;
     MockStorage.add(STORAGE_KEYS.MODELS, newModel);
     return Promise.resolve(newModel);
   }
@@ -114,7 +126,7 @@ export async function createModel(model: Omit<Model, 'id'>): Promise<Model> {
 /**
  * Updates an existing model.
  */
-export async function updateModel(id: number, updates: Partial<Model>): Promise<Model> {
+export async function updateModel(id: number, updates: ModelUpdate): Promise<Model> {
   if (isMockDataEnabled()) {
     // Assert Model type with required ID for storage compatibility
     const updated = MockStorage.update<Model & { id: number }>(STORAGE_KEYS.MODELS, id, updates);

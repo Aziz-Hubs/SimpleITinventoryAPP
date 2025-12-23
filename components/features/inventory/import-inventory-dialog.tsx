@@ -108,7 +108,7 @@ export function ImportInventoryDialog({
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{asset.servicetag}</Badge>
+                          <Badge variant="outline">{asset.serviceTag}</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {asset.employee || "Unassigned"}

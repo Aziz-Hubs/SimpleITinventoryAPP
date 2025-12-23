@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MaintenanceRecord, MaintenanceStatus } from "@/lib/types";
+import { MaintenanceRecord, MaintenanceStatusEnum } from "@/lib/types";
 import { useMaintenanceRecords } from "@/hooks/api/use-maintenance";
 import { useTableParams } from "@/hooks/use-table-params";
 import { MaintenanceDialog } from "./maintenance-dialog";
@@ -45,18 +45,18 @@ export function MaintenanceDashboard() {
     refetch,
   } = useMaintenanceRecords({
     search: params.search,
-    status: params.state as MaintenanceStatus,
+    status: params.state as MaintenanceStatusEnum,
   });
 
   const records = response?.data || [];
 
   const search = params.search;
-  const statusFilter = params.state as MaintenanceStatus | "all";
+  const statusFilter = params.state as MaintenanceStatusEnum | "all";
   const viewMode = (params.tab as "list" | "board") || "board";
 
   const setViewMode = (mode: "list" | "board") => setParams({ tab: mode });
   const setSearch = (s: string) => setParams({ search: s, page: 1 });
-  const setStatusFilter = (s: MaintenanceStatus | "all") =>
+  const setStatusFilter = (s: MaintenanceStatusEnum | "all") =>
     setParams({ state: s, page: 1 });
 
   // Dialog/Sheet states

@@ -121,7 +121,7 @@ export function useAssignAsset() {
 
   return useMutation({
     mutationFn: ({ id, employee }: { id: number; employee: string }) => 
-      updateAsset(id, { employee }),
+      updateAsset(id, { employeeId: employee }),
     onMutate: async ({ id, employee }) => {
       // Cancel any outgoing refetches to prevent them overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ASSET_KEYS.all });
@@ -135,7 +135,7 @@ export function useAssignAsset() {
         return {
           ...old,
           data: old.data.map((asset: Asset) => 
-            asset.id === id ? { ...asset, employee } : asset
+            asset.id === id ? { ...asset, employeeId: employee } : asset
           ),
         };
       });

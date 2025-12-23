@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getModels,
+  getModelById,
   createModel,
   updateModel,
   deleteModel,

@@ -92,7 +92,7 @@ export function BulkDeleteDialog({
                         {asset.make} {asset.model}
                       </span>
                       <span className="text-[9px] font-mono text-muted-foreground uppercase opacity-70">
-                        {asset.servicetag}
+                        {asset.serviceTag}
                       </span>
                     </div>
                     <Badge
