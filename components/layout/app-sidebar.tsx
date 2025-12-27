@@ -101,6 +101,8 @@ const data = {
   ],
 };
 
+import { supabase } from "@/lib/supabase";
+import { User } from "@supabase/supabase-js";
 import { SearchPalette } from "../shared/search-palette";
 import { EditItemDialog } from "../features/inventory/edit-item-dialog";
 import { NotificationsCenter } from "../features/notifications/notifications-center";
@@ -109,6 +111,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+  const [user, setUser] = React.useState<User | null>(null);
+
+  React.useEffect(() => {
+    // Initial fetch
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -148,7 +167,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <EditItemDialog open={editOpen} onOpenChange={setEditOpen} />

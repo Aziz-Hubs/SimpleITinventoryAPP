@@ -282,13 +282,16 @@ export function MaintenanceDialog({
         side="right"
         className="w-full sm:max-w-xl p-0 flex flex-col border-l shadow-2xl overflow-hidden"
         onInteractOutside={(e) => {
-          // Prevent sheet from closing when interacting with portal-based elements
-          // like Popovers, Comboboxes, and Selects that render in portals
-          e.preventDefault();
-        }}
-        onPointerDownOutside={(e) => {
-          // Prevent sheet from closing when clicking on portal-based elements
-          e.preventDefault();
+          const target = e.target as HTMLElement;
+          // Only prevent closing if the click is inside a popover/command content
+          // This allows "clicking away" on the main backdrop to still close the sheet
+          if (
+            target.closest('[role="combobox"]') ||
+            target.closest('[role="listbox"]') ||
+            target.closest("[data-radix-popper-content-wrapper]")
+          ) {
+            e.preventDefault();
+          }
         }}
       >
         <form

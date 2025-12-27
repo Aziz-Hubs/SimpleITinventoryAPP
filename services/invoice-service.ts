@@ -1,46 +1,39 @@
 /**
  * @file invoice-service.ts
- * @description Service layer for managing finance invoices.
+ * @description Service layer for managing finance invoices using Supabase.
  * @path /services/invoice-service.ts
  */
 
-import { isMockDataEnabled, apiClient } from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
 import { Invoice, InvoiceCreate, InvoiceUpdate } from '@/lib/types';
-import invoiceData from '@/data/invoices.json';
-import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
 
-// Define the shape of the raw JSON data
-interface RawInvoice {
-  id: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  vendor: string;
-  assetIds: string[];
+// Helper to map DB row to Invoice type
+function mapInvoiceFromDB(row: any): Invoice {
+  return {
+    id: row.id,
+    invoiceNumber: row.invoice_number,
+    vendor: row.vendor,
+    purchaseDate: row.purchase_date,
+    tenantId: row.tenant_id,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by,
+    rowVersion: row.row_version,
+  };
 }
 
-/**
- * Accesses or initializes the local storage-based mock invoices.
- * Adapts raw JSON data to the strict Invoice type.
- *
- * @returns {Invoice[]} The current set of invoices from mock storage.
- */
-function getMockInvoices(): Invoice[] {
-  // Transform raw data to valid Invoice objects
-  const initialInvoices: Invoice[] = (invoiceData as RawInvoice[]).map((raw) => ({
-    id: parseInt(raw.id, 10),
-    invoiceNumber: raw.invoiceNumber,
-    vendor: raw.vendor,
-    purchaseDate: new Date(raw.invoiceDate).toISOString(), // Map invoiceDate to purchaseDate
-    // Add missing auditable fields
-    tenantId: '00000000-0000-0000-0000-000000000000',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    createdBy: 'system',
-    updatedBy: 'system',
-    rowVersion: '1',
-  }));
+// Helper to map InvoiceCreate to DB row
+function mapInvoiceToDB(invoice: InvoiceCreate | InvoiceUpdate) {
+  const dbRow: any = {
+    invoice_number: (invoice as any).invoiceNumber,
+    vendor: (invoice as any).vendor,
+    purchase_date: (invoice as any).purchaseDate,
+  };
 
-  return MockStorage.initialize(STORAGE_KEYS.INVOICES, initialInvoices);
+  // Only include defined fields
+  Object.keys(dbRow).forEach(key => dbRow[key] === undefined && delete dbRow[key]);
+  return dbRow;
 }
 
 /**
@@ -49,31 +42,36 @@ function getMockInvoices(): Invoice[] {
  * @returns {Promise<Invoice[]>}
  */
 export async function getInvoices(): Promise<Invoice[]> {
-  if (isMockDataEnabled()) {
-    return Promise.resolve(getMockInvoices());
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .order('purchase_date', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return apiClient.get<Invoice[]>('/invoices');
+  return (data || []).map(mapInvoiceFromDB);
 }
 
 /**
  * Fetches a single invoice by its unique ID.
  *
  * @param id - The invoice ID.
- * @throws {Error} If in mock mode and the ID does not exist.
  * @returns {Promise<Invoice>}
  */
 export async function getInvoiceById(id: string): Promise<Invoice> {
-  if (isMockDataEnabled()) {
-    const idNum = parseInt(id, 10);
-    const invoice = getMockInvoices().find((i) => i.id === idNum);
-    if (!invoice) {
-      throw new Error(`Invoice with ID ${id} not found`);
-    }
-    return Promise.resolve(invoice);
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return apiClient.get<Invoice>(`/invoices/${id}`);
+  return mapInvoiceFromDB(data);
 }
 
 /**
@@ -83,23 +81,22 @@ export async function getInvoiceById(id: string): Promise<Invoice> {
  * @returns {Promise<Invoice>}
  */
 export async function createInvoice(data: InvoiceCreate): Promise<Invoice> {
-  if (isMockDataEnabled()) {
-    const newInvoice: Invoice = {
-      ...data,
-      id: Math.floor(Math.random() * 100000),
-      tenantId: '00000000-0000-0000-0000-000000000000',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: 'system',
-      updatedBy: 'system',
-      rowVersion: '1'
-    };
-    const invoices = getMockInvoices();
-    MockStorage.save(STORAGE_KEYS.INVOICES, [...invoices, newInvoice]);
-    return Promise.resolve(newInvoice);
+  const dbRow = mapInvoiceToDB(data);
+  dbRow.tenant_id = '00000000-0000-0000-0000-000000000000';
+  dbRow.created_by = 'system';
+  dbRow.updated_by = 'system';
+
+  const { data: created, error } = await supabase
+    .from('invoices')
+    .insert(dbRow)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return apiClient.post<Invoice>('/invoices', data);
+  return mapInvoiceFromDB(created);
 }
 
 /**
@@ -110,22 +107,22 @@ export async function createInvoice(data: InvoiceCreate): Promise<Invoice> {
  * @returns {Promise<Invoice>}
  */
 export async function updateInvoice(id: string, updates: InvoiceUpdate): Promise<Invoice> {
-  if (isMockDataEnabled()) {
-    const invoices = getMockInvoices();
-    const idNum = parseInt(id, 10);
-    const index = invoices.findIndex((i) => i.id === idNum);
-    
-    if (index === -1) {
-      throw new Error(`Invoice with ID ${id} not found`);
-    }
+  const dbRow = mapInvoiceToDB(updates);
+  dbRow.updated_at = new Date().toISOString();
+  dbRow.updated_by = 'system';
 
-    const updatedInvoice = { ...invoices[index], ...updates, updatedAt: new Date().toISOString() };
-    invoices[index] = updatedInvoice;
-    MockStorage.save(STORAGE_KEYS.INVOICES, invoices);
-    return Promise.resolve(updatedInvoice);
+  const { data, error } = await supabase
+    .from('invoices')
+    .update(dbRow)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  return apiClient.put<Invoice>(`/invoices/${id}`, updates);
+  return mapInvoiceFromDB(data);
 }
 
 /**
@@ -135,13 +132,45 @@ export async function updateInvoice(id: string, updates: InvoiceUpdate): Promise
  * @returns {Promise<void>}
  */
 export async function deleteInvoice(id: string): Promise<void> {
-  if (isMockDataEnabled()) {
-    const invoices = getMockInvoices();
-    const idNum = parseInt(id, 10);
-    const filteredInvoices = invoices.filter((i) => i.id !== idNum);
-    MockStorage.save(STORAGE_KEYS.INVOICES, filteredInvoices);
-    return Promise.resolve();
+  const { error } = await supabase
+    .from('invoices')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Generates and downloads a CSV export of the current invoices.
+ * 
+ * @returns {Promise<Blob>}
+ */
+export async function exportInvoicesToCSV(): Promise<Blob> {
+  // Reuse getInvoices just like other exports. For large data consider pagination or stream.
+  const invoices = await getInvoices();
+
+  if (invoices.length === 0) {
+    return new Blob([''], { type: 'text/csv' });
   }
 
-  return apiClient.delete(`/invoices/${id}`);
+  const headers = ['ID', 'Invoice Number', 'Vendor', 'Purchase Date', 'Line Items Count'];
+  
+  // Note: getInvoices currently doesn't join line items, so count might be missing or require extra fetch.
+  // For now let's export basic invoice data.
+  
+  const csvContent = [
+    headers.join(','),
+    ...invoices.map(inv => [
+      inv.id,
+      `"${inv.invoiceNumber}"`,
+      `"${inv.vendor}"`,
+      inv.purchaseDate,
+      // inv.lineItems?.length || 0 // If we fetched them
+      ''
+    ].join(','))
+  ].join('\n');
+
+  return new Blob([csvContent], { type: 'text/csv' });
 }

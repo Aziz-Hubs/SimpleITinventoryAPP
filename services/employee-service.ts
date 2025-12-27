@@ -1,41 +1,46 @@
 /**
  * @file employee-service.ts
- * @description Service layer for managing employee-related data.
- * Reads employee data from the dedicated `data/employees.json` file.
+ * @description Service layer for managing employee-related data using Supabase.
  * @path /services/employee-service.ts
  */
 
-import employeesJson from '@/data/employees.json';
-import { isMockDataEnabled, apiClient } from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
 import { Employee, PaginatedResponse, EmployeeFilters, EmployeeCreate, EmployeeUpdate } from '@/lib/types';
-import { MockStorage, STORAGE_KEYS } from '@/lib/mock-storage';
 import { paginateData } from '@/lib/utils';
+import { parseEmployeesCsv } from '@/lib/csv-parser';
+import { ImportResult } from '@/lib/types';
 
-/**
- * Retrieves the initial employees list from the JSON file.
- * @returns {Employee[]} The list of employees from the data source.
- */
-function getInitialEmployees(): Employee[] {
-    return employeesJson.employees as Employee[];
+// Helper to map DB row to Employee type
+function mapEmployeeFromDB(row: any): Employee {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    department: row.department,
+    position: row.position,
+    isActive: row.is_active,
+    tenantId: row.tenant_id,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by,
+    rowVersion: row.row_version,
+  };
 }
 
-/**
- * Retrieves the employee list from local storage or hydrates it from the employees.json data.
- * If cached data is empty but source has data, it refreshes the cache.
- * 
- * @returns {Employee[]}
- */
-function getMockEmployees(): Employee[] {
-    const sourceData = getInitialEmployees();
-    const cachedData = MockStorage.getAll<Employee>(STORAGE_KEYS.EMPLOYEES);
-    
-    // If cache is empty but source has data, refresh from source
-    if (cachedData.length === 0 && sourceData.length > 0) {
-        return MockStorage.refresh(STORAGE_KEYS.EMPLOYEES, sourceData);
-    }
-    
-    // Otherwise use standard initialize (returns cached if exists, or saves source)
-    return MockStorage.initialize(STORAGE_KEYS.EMPLOYEES, sourceData);
+// Helper to map EmployeeCreate to DB row
+function mapEmployeeToDB(employee: Employee | EmployeeCreate | EmployeeUpdate) {
+  const dbRow: any = {
+    full_name: (employee as any).fullName,
+    email: (employee as any).email,
+    department: (employee as any).department,
+    position: (employee as any).position,
+    is_active: (employee as any).isActive,
+  };
+
+  // Only include defined fields
+  Object.keys(dbRow).forEach(key => dbRow[key] === undefined && delete dbRow[key]);
+  return dbRow;
 }
 
 /**
@@ -45,29 +50,49 @@ function getMockEmployees(): Employee[] {
  * @returns {Promise<PaginatedResponse<Employee>>}
  */
 export async function getEmployees(filters: EmployeeFilters = {}): Promise<PaginatedResponse<Employee>> {
-    if (isMockDataEnabled()) {
-        const employees = getMockEmployees();
-        
-        let filtered = [...employees];
-        if (filters.search) {
-            const search = filters.search.toLowerCase();
-            filtered = filtered.filter(e => 
-                e.fullName.toLowerCase().includes(search) || 
-                e.email.toLowerCase().includes(search) ||
-                e.department.toLowerCase().includes(search)
-            );
-        }
+  let query = supabase
+    .from('employees')
+    .select('*', { count: 'exact' });
 
-        if (filters.department && filters.department !== 'all') {
-            filtered = filtered.filter(e => e.department === filters.department);
-        }
+  if (filters.search) {
+    const term = filters.search;
+    query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,department.ilike.%${term}%`);
+  }
 
-        return Promise.resolve(paginateData(filtered, filters.page, filters.pageSize));
-    }
+  if (filters.department && filters.department !== 'all') {
+    query = query.eq('department', filters.department);
+  }
 
-    return apiClient.get<PaginatedResponse<Employee>>('/employees', { 
-        params: filters as Record<string, string | number | boolean | undefined> 
-    });
+  if (filters.isActive !== undefined) {
+    query = query.eq('is_active', filters.isActive);
+  }
+
+  const page = filters.page || 1;
+  const pageSize = filters.pageSize || 10;
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize - 1;
+
+  query = query
+    .order('full_name', { ascending: true })
+    .range(start, end);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const employees = (data || []).map(mapEmployeeFromDB);
+
+  return {
+    data: employees,
+    pagination: {
+      page,
+      pageSize,
+      totalItems: count || 0,
+      totalPages: Math.ceil((count || 0) / pageSize),
+    },
+  };
 }
 
 /**
@@ -77,12 +102,19 @@ export async function getEmployees(filters: EmployeeFilters = {}): Promise<Pagin
  * @returns {Promise<Employee | null>}
  */
 export async function getEmployeeById(id: string): Promise<Employee | null> {
-    if (isMockDataEnabled()) {
-        const employee = getMockEmployees().find((e: Employee) => e.id === id);
-        return Promise.resolve(employee || null);
-    }
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('id', id)
+    .single();
 
-    return apiClient.get<Employee>(`/employees/${id}`);
+  if (error) {
+    // If error is code PGRST116 (JSON object requested, multiple (or no) rows returned), return null
+    if (error.code === 'PGRST116') return null;
+    throw new Error(error.message);
+  }
+
+  return mapEmployeeFromDB(data);
 }
 
 /**
@@ -92,39 +124,54 @@ export async function getEmployeeById(id: string): Promise<Employee | null> {
  * @returns {Promise<Employee | null>}
  */
 export async function getEmployeeByName(name: string): Promise<Employee | null> {
-    if (isMockDataEnabled()) {
-        const employee = getMockEmployees().find((e: Employee) => e.fullName.toLowerCase() === name.toLowerCase());
-        return Promise.resolve(employee || null);
-    }
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .ilike('full_name', name)
+    .maybeSingle();
 
-    const response = await getEmployees();
-    return response.data.find(e => e.fullName.toLowerCase() === name.toLowerCase()) || null;
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? mapEmployeeFromDB(data) : null;
 }
 
 /**
  * Adds a new employee to the system.
  * 
  * @param employee - Employee detail excluding ID.
- * @sideeffect Appends to mock storage if enabled.
  * @returns {Promise<Employee>} The created object with its new ID.
  */
 export async function createEmployee(employee: EmployeeCreate): Promise<Employee> {
-    if (isMockDataEnabled()) {
-        const employees = getMockEmployees();
-        const newEmployee: Employee = {
-            ...employee,
-            id: `EMP-${(employees.length + 1).toString().padStart(3, '0')}`,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            createdBy: 'Admin',
-            updatedBy: 'Admin',
-            rowVersion: '1'
-        };
-        MockStorage.add(STORAGE_KEYS.EMPLOYEES, newEmployee);
-        return Promise.resolve(newEmployee);
-    }
+  // Generate ID if not provided? 
+  // In the mock it was converting to EMP-XXX. Supabase doesn't auto-gen string IDs like that unless we use a trigger or client-side logic.
+  // The table definition has `id text primary key`.
+  // I will generate it client-side for now to match the "EMP-XXX" format or just use UUID if I changed the schema.
+  // The schema I created says `id text primary key`.
+  // Let's check how many employees to generate ID.
+  
+  // NOTE: This creates a race condition in high concurrency but acceptable for this migration context.
+  const { count } = await supabase.from('employees').select('id', { count: 'exact', head: true });
+  const nextId = `EMP-${((count || 0) + 1).toString().padStart(3, '0')}`;
+  
+  const dbRow = mapEmployeeToDB(employee);
+  dbRow.id = nextId;
+  dbRow.tenant_id = '00000000-0000-0000-0000-000000000000';
+  dbRow.created_by = 'system';
+  dbRow.updated_by = 'system';
 
-    return apiClient.post<Employee>('/employees', employee);
+  const { data, error } = await supabase
+    .from('employees')
+    .insert(dbRow)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return mapEmployeeFromDB(data);
 }
 
 /**
@@ -132,36 +179,130 @@ export async function createEmployee(employee: EmployeeCreate): Promise<Employee
  * 
  * @param id - The target ID.
  * @param updates - Partial object containing fields to change.
- * @throws {Error} If the ID does not exist in mock storage.
  * @returns {Promise<Employee>}
  */
 export async function updateEmployee(id: string, updates: EmployeeUpdate): Promise<Employee> {
-    if (isMockDataEnabled()) {
-        const updated = MockStorage.update<Employee>(STORAGE_KEYS.EMPLOYEES, id, updates);
-        if (!updated) {
-            throw new Error(`Employee with ID ${id} not found`);
-        }
-        return Promise.resolve(updated);
-    }
+  const dbRow = mapEmployeeToDB(updates);
+  dbRow.updated_at = new Date().toISOString();
+  dbRow.updated_by = 'system';
 
-    return apiClient.put<Employee>(`/employees/${id}`, updates);
+  const { data, error } = await supabase
+    .from('employees')
+    .update(dbRow)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return mapEmployeeFromDB(data);
 }
 
 /**
  * Permanently removes an employee.
  * 
  * @param id - Employee ID to remove.
- * @throws {Error} If the ID does not exist in mock storage.
  * @returns {Promise<{ success: boolean; message: string }>}
  */
 export async function deleteEmployee(id: string): Promise<{ success: boolean; message: string }> {
-    if (isMockDataEnabled()) {
-        const success = MockStorage.remove(STORAGE_KEYS.EMPLOYEES, id);
-        if (!success) {
-            throw new Error(`Employee with ID ${id} not found`);
-        }
-        return Promise.resolve({ success: true, message: 'Employee deleted successfully' });
+  const { error } = await supabase
+    .from('employees')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { success: true, message: 'Employee deleted successfully' };
+}
+
+/**
+ * Triggers a CSV file upload for bulk employee creation.
+ * 
+ * @param file - The Multi-part form file data.
+ * @returns {Promise<ImportResult>}
+ */
+export async function importEmployeesFromCSV(file: File): Promise<ImportResult> {
+  try {
+    const parsedEmployees = await parseEmployeesCsv(file);
+    const results: ImportResult = {
+      success: true,
+      imported: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    const batchSize = 50;
+    for (let i = 0; i < parsedEmployees.length; i += batchSize) {
+      const batch = parsedEmployees.slice(i, i + batchSize);
+
+      const dbRows = batch.map(emp => {
+        // Simple ID generation for batch: this risks collision if run in parallel with other creators
+        const idSuffix = Math.floor(Math.random() * 100000).toString().padStart(6, '0');
+        return {
+          id: `EMP-${idSuffix}`, 
+          full_name: emp.fullName,
+          email: emp.email,
+          department: emp.department,
+          position: emp.position,
+          is_active: true,
+          tenant_id: '00000000-0000-0000-0000-000000000000',
+          created_by: 'import',
+          updated_by: 'import',
+        };
+      });
+
+      const { error } = await supabase.from('employees').insert(dbRows);
+
+      if (error) {
+        results.failed += batch.length;
+        results.errors?.push({ row: i, message: error.message });
+      } else {
+        results.imported += batch.length;
+      }
     }
 
-    return apiClient.delete<{ success: boolean; message: string }>(`/employees/${id}`);
+    return results;
+  } catch (err) {
+    return {
+      success: false,
+      imported: 0,
+      failed: 0,
+      errors: [{ row: 0, message: (err as Error).message }]
+    };
+  }
+}
+
+/**
+ * Generates and downloads a CSV export of the current filtered employees.
+ * 
+ * @param filters - Search criteria.
+ * @returns {Promise<Blob>}
+ */
+export async function exportEmployeesToCSV(filters: EmployeeFilters = {}): Promise<Blob> {
+  const exportFilters = { ...filters, pageSize: 10000 };
+  const result = await getEmployees(exportFilters);
+  const employees = result.data;
+
+  if (employees.length === 0) {
+    return new Blob([''], { type: 'text/csv' });
+  }
+
+  const headers = ['ID', 'Full Name', 'Email', 'Department', 'Position', 'Status'];
+  const csvContent = [
+    headers.join(','),
+    ...employees.map(e => [
+      e.id,
+      `"${e.fullName}"`,
+      e.email,
+      e.department,
+      e.position,
+      e.isActive ? 'Active' : 'Inactive'
+    ].join(','))
+  ].join('\n');
+
+  return new Blob([csvContent], { type: 'text/csv' });
 }
